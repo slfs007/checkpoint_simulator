@@ -13,8 +13,7 @@ yList = []
 
 line = db_log.readline()
 i = 0
-MAX_LINE = 1000000
-while line and i < MAX_LINE:
+while line :
     secStr,nsecStr = line.split(',')
     sec = int(secStr)
     nsec = int(nsecStr)
@@ -26,6 +25,7 @@ while line and i < MAX_LINE:
     i = i + 1
     line = db_log.readline()
 i = 0
+print len( yList)
 avgYList = []
 sum = 0
 while i < len(yList):
@@ -34,7 +34,7 @@ while i < len(yList):
     if 0 == i % avg_divisor:
         avgYList.append(sum / avg_divisor)
         sum = 0
-
+print len( avgYList)
 plt.plot( range(0,len(avgYList),1),avgYList)
 plt.ylabel(plot_name)
 plt.show()

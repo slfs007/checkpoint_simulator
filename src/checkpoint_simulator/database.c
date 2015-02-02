@@ -227,10 +227,18 @@ void *database_thread(void *arg)
     pthread_barrier_wait( ckp_db_b);
     
     ckp_id = 0;
-    ckp_max = 50;
+    ckp_max = 20;
+    long long timeStart;
+    long long timeEnd;
     while( 1)
     {
-        checkpoint(ckp_id%2, info);
+        timeStart = get_utime(); 
+	printf("time:%d\n",(int)(timeStart/1000000));
+	checkpoint(ckp_id%2, info);
+	timeEnd = get_utime();
+	
+	usleep(5000000 - (timeEnd - timeStart));		
+	
         ckp_id ++;
         if (ckp_id >= ckp_max)
         {
@@ -716,4 +724,19 @@ void db_mk_destroy( void *mk_info)
     free(info->db_mk_as2);
     free(info->db_mk_ba);
     pthread_rwlock_destroy(&( info->db_rwlock));
+}
+long long get_ntime( void)
+{
+	struct timespec timeNow;
+	
+	clock_gettime(CLOCK_MONOTONIC, &timeNow);
+	return timeNow.tv_sec * 1000000000 + timeNow.tv_nsec;
+}
+long long get_utime( void)
+{
+	return get_ntime()/1000;
+}
+long long get_mtime( void)
+{
+	return get_ntime()/1000000;
 }

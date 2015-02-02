@@ -44,7 +44,9 @@ typedef struct{
 /*basic*/
 void log_time_write( struct timespec *log,int log_size,char *log_name);
 void *database_thread(void *arg);
-
+long long get_ntime( void);
+long long get_utime( void);
+long long get_mtime( void);
 /*naive*/
 int db_naive_init(void *db_naive_info,int db_size);
 void* naive_read( int index);
