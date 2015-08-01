@@ -16,6 +16,7 @@ int main( int argc, char *argv[])
     pthread_t *update_thread_array;
     pthread_t db_thread;
     int db_thread_arg[2];
+    int i;
     
     if ( argc != 5)
     {
@@ -34,8 +35,27 @@ int main( int argc, char *argv[])
         perror("database thread create error!");
     }
     //start update thread array
-     update_thread_array = (pthread_t *)malloc(sizeof(pthread_t) * update_thread_num);
-    //wait for quit
-     pthread_join( db_thread,NULL);
+    if (NULL == (update_thread_array = (pthread_t *)malloc(sizeof(pthread_t) * update_thread_num)))
+    {
+        perror("update thread array malloc error");
+    }
+    for ( i = 0; i < update_thread_num ; i++)
+    {
+        if ( 0 != pthread_create( &(update_thread_array[i]), NULL,update_thread,db_thread_arg))
+        {
+            printf("update thread %d create error\n",i);
+        }else
+        {
+            printf("update thread %d create success\n",i);
+        }
+    }
+    
+     //wait for quit
+    for ( i = 0;i < update_thread_num ; i ++)
+    {
+        pthread_join( update_thread_array[i],NULL);
+    }
+    pthread_join( db_thread,NULL);
+     
      exit(1);
 }
