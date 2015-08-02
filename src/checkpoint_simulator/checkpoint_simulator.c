@@ -9,14 +9,18 @@
 int main( int argc, char *argv[])
 {
     FILE *rdf;
+    int i;
     int update_thread_num;
     int db_size;
     int alg_type;
+    int db_thread_arg[2];
     char *rf_name;
     pthread_t *update_thread_array;
     pthread_t db_thread;
-    int db_thread_arg[2];
-    int i;
+    pthread_barrier_t ckp_db_b;   
+    db_thread_info db_thread_infomation;
+    
+    pthread_barrier_init( &ckp_db_b, NULL,2);
     
     if ( argc != 5)
     {
@@ -28,13 +32,19 @@ int main( int argc, char *argv[])
     rf_name = argv[4];
    
     //start db_thread
-    db_thread_arg[0] = db_size;
-    db_thread_arg[1] = alg_type;
-    if ( 0 != pthread_create( &db_thread, NULL, database_thread, db_thread_arg))
+    
+    db_thread_infomation.alg_type = alg_type;
+    db_thread_infomation.db_size = db_size;
+    db_thread_infomation.ckp_db_barrier = &ckp_db_b;
+    if ( 0 != pthread_create( &db_thread, NULL, database_thread, &db_thread_infomation))
     {
         perror("database thread create error!");
     }
+    
+    pthread_barrier_wait( &ckp_db_b);
     //start update thread array
+    db_thread_arg[0] = db_size;
+    db_thread_arg[1] = alg_type;
     if (NULL == (update_thread_array = (pthread_t *)malloc(sizeof(pthread_t) * update_thread_num)))
     {
         perror("update thread array malloc error");
@@ -56,6 +66,5 @@ int main( int argc, char *argv[])
         pthread_join( update_thread_array[i],NULL);
     }
     pthread_join( db_thread,NULL);
-     
-     exit(1);
+    exit(1);
 }

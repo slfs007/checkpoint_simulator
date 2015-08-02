@@ -1,6 +1,6 @@
 #include"database.h"
 #include<stdio.h>
-#include<pthread.h>
+
 #include<stdlib.h>
 #include<string.h>
 int *db_naive_AS;
@@ -34,9 +34,13 @@ int db_naive_init(int db_size)
 }
 void *database_thread(void *arg)
 {
-    int db_size = (( int *)arg)[0];
-    int alg_type = (( int *)arg)[1];
+    int db_size = ((db_thread_info *)arg)->db_size;
+    int alg_type = ((db_thread_info *)arg)->alg_type;
     int ckp_id;
+    pthread_barrier_t *ckp_db_b;
+    
+    ckp_db_b = ((db_thread_info *)arg)->ckp_db_barrier;
+    
     printf("database thread start，db_size:%d alg_type:%d\n",db_size,alg_type);
     if ( 0 == alg_type )
     {
@@ -48,6 +52,8 @@ void *database_thread(void *arg)
     {
         perror("alg type error");
     }
+    printf("database thread init success!\n");
+    pthread_barrier_wait( ckp_db_b);
     
     ckp_id = 0;
     while( 1)
@@ -84,11 +90,11 @@ int ckp_naive( int ckp_id)
     fflush(ckp_file);
     fclose(ckp_file);
 }
-int navie_read( int index)
+int naive_read( int index)
 {
     return db_naive_AS[index];
 }
-int navie_write( int index,int value)
+int naive_write( int index,int value)
 {
     if ( index >= DB_SIZE)
     {
