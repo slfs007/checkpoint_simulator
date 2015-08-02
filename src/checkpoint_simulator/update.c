@@ -8,9 +8,8 @@ void *update_thread(void *arg)
     int alg_type = (( update_thread_info *)arg) ->alg_type;
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
-    int intbuf;
     int i;
-    int test_fd;
+    int buf;
     
     if ( 0 == alg_type )
     {
@@ -20,6 +19,17 @@ void *update_thread(void *arg)
     {
         perror("alg_type error");
     }
-    printf("buffer size:%d\n",random_buffer_size);
+    for ( i = 0; i < random_buffer_size; i ++)
+    {
+        buf = random_buffer[ i];
+        if ( 0 == buf/2)
+        {
+            db_read(buf%db_size);
+        }else
+        {
+            db_write(buf%db_size,buf);
+        }
+    }
 
+    return;
 }

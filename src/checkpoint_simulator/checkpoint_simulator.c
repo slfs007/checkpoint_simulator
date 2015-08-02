@@ -51,7 +51,12 @@ int main( int argc, char *argv[])
     {
         perror( "random file open error!\n");
     }
-    update_thread_infomation.random_buffer = mmap(0,1024 * sizeof(int),PROT_READ,MAP_LOCKED,rdf,0);
+    
+    update_thread_infomation.random_buffer = ( int *)mmap(NULL,1024 * sizeof(int),PROT_READ,MAP_LOCKED|MAP_SHARED,rdf,0);
+    if ( MAP_FAILED == update_thread_infomation.random_buffer )
+    {
+        perror("mmap failed!");
+    }
     update_thread_infomation.random_buffer_size = 1024;
     
     
@@ -74,6 +79,7 @@ int main( int argc, char *argv[])
     for ( i = 0;i < update_thread_num ; i ++)
     {
         pthread_join( update_thread_array[i],NULL);
+        printf("update thread %d exit!\n",i);
     }
     pthread_join( db_thread,NULL);
     exit(1);
