@@ -3,12 +3,13 @@
 #include<pthread.h>
 #include"database.h"
 #include"update.h"
-
+#include <sys/mman.h>
+#include<fcntl.h>
 
 
 int main( int argc, char *argv[])
 {
-    FILE *rdf;
+    int rdf;
     int i;
     int update_thread_num;
     int db_size;
@@ -19,6 +20,7 @@ int main( int argc, char *argv[])
     pthread_t db_thread;
     pthread_barrier_t ckp_db_b;   
     db_thread_info db_thread_infomation;
+    update_thread_info update_thread_infomation;
     
     pthread_barrier_init( &ckp_db_b, NULL,2);
     
@@ -43,15 +45,23 @@ int main( int argc, char *argv[])
     
     pthread_barrier_wait( &ckp_db_b);
     //start update thread array
-    db_thread_arg[0] = db_size;
-    db_thread_arg[1] = alg_type;
+    update_thread_infomation.alg_type = alg_type;
+    update_thread_infomation.db_size = db_size;
+    if ( -1 == ( rdf = open(rf_name, O_RDONLY)))
+    {
+        perror( "random file open error!\n");
+    }
+    update_thread_infomation.random_buffer = mmap(0,1024 * sizeof(int),PROT_READ,MAP_LOCKED,rdf,0);
+    update_thread_infomation.random_buffer_size = 1024;
+    
+    
     if (NULL == (update_thread_array = (pthread_t *)malloc(sizeof(pthread_t) * update_thread_num)))
     {
         perror("update thread array malloc error");
     }
     for ( i = 0; i < update_thread_num ; i++)
     {
-        if ( 0 != pthread_create( &(update_thread_array[i]), NULL,update_thread,db_thread_arg))
+        if ( 0 != pthread_create( &(update_thread_array[i]), NULL,update_thread,&update_thread_infomation))
         {
             printf("update thread %d create error\n",i);
         }else

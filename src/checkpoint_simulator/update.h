@@ -11,7 +11,12 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
- 
+typedef struct{
+    int db_size;
+    int alg_type;
+    int *random_buffer;
+    int random_buffer_size;
+}update_thread_info;
 void *update_thread(void *arg);
 int (*db_read)( int index);
 int (*db_write)( int index,int value);
