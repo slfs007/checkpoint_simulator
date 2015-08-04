@@ -3,11 +3,11 @@
 
 #include<stdlib.h>
 #include<string.h>
-int *db_naive_AS;
-int *db_naive_AS_shandow;
-int DB_SIZE;
-pthread_mutex_t naive_db_mutex;
-pthread_mutex_t write_mutex;
+static int *db_naive_AS;
+static int *db_naive_AS_shandow;
+static int DB_SIZE;
+static pthread_mutex_t naive_db_mutex;
+static pthread_mutex_t write_mutex;
 
 int db_naive_init(int db_size)
 {
@@ -66,12 +66,10 @@ void *database_thread(void *arg)
     ckp_id = 0;
     while( 1)
     {
-        //checkpoint 
-        if (ckp_id >= 10)
-            break;
-        ckp_naive(ckp_id);
+        ckp_naive(ckp_id%10);
         ckp_id ++;
-        
+        if (ckp_id > 1000)
+            break;
     }
 DB_EXIT:
     printf("database thread exit\n");
@@ -88,10 +86,10 @@ int ckp_naive( int ckp_id)
     char ckp_name[32];
     
     
-    sprintf(ckp_name,"%d",ckp_id);
+    sprintf(ckp_name,"./ckp_backup/%d",ckp_id);
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
-        perror("checkpoint file open error");
+        perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
     }
 
     

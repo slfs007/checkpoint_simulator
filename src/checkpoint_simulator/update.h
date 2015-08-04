@@ -19,10 +19,10 @@ typedef struct{
     int random_buffer_size;
     pthread_barrier_t *update_brr_init;
 
+
 }update_thread_info;
 void *update_thread(void *arg);
-int (*db_read)( int index);
-int (*db_write)( int index,int value);
+
 
 #ifdef	__cplusplus
 }

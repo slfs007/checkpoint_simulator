@@ -9,7 +9,8 @@
 
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size);
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
-                        const int db_size,const int thread_num,int *map_buf,const int map_size);
+                        const int db_size,const int thread_num,
+                        int *map_buf,const int map_size);
 int main( int argc, char *argv[])
 {
     int i;
@@ -47,7 +48,6 @@ int main( int argc, char *argv[])
    
     map_buf = ( int *)mmap(NULL,1024 * sizeof(int),
                                     PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
-
 
     if ( MAP_FAILED == map_buf )
     {
@@ -90,7 +90,8 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size)
 
 }
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
-                        const int db_size,const int thread_num,int *map_buf,const int map_size)
+                        const int db_size,const int thread_num,
+                        int *map_buf,const int map_size)
 {
 
     int i;
@@ -114,7 +115,8 @@ int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
     for ( i = 0; i < thread_num ; i++)
     {
         
-        if ( 0 != pthread_create( &((*update_thread_id_array)[i]), NULL,update_thread,&update_info))
+        if ( 0 != pthread_create( &((*update_thread_id_array)[i]), 
+                NULL,update_thread,&update_info))
         {
             printf("update thread %d create error",i);
         }else

@@ -17,6 +17,7 @@ typedef struct{
     int db_size;
     int alg_type;
     pthread_barrier_t *ckp_db_barrier;
+
 } db_thread_info;   
  
 void *database_thread(void *arg);
