@@ -11,11 +11,14 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
+#include<pthread.h>
 typedef struct{
     int db_size;
     int alg_type;
     int *random_buffer;
     int random_buffer_size;
+    pthread_barrier_t *update_brr_init;
+
 }update_thread_info;
 void *update_thread(void *arg);
 int (*db_read)( int index);

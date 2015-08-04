@@ -3,19 +3,22 @@
 #include<pthread.h>
 #include"database.h"
 #include"update.h"
-#include <sys/mman.h>
+#include<sys/mman.h>
 #include<fcntl.h>
+#include<unistd.h>
 
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size);
-int update_thread_start(pthread_t * update_thread_id_array,int type_alg,
-                        int db_size,int thread_num,char *rf_name);
+int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
+                        const int db_size,const int thread_num,int *map_buf,const int map_size);
 int main( int argc, char *argv[])
 {
     int i;
     int update_thread_num;
     int db_size;
     int alg_type;
+    int *map_buf;
     char *rf_path;
+    int rdf_fd;
     pthread_t *update_thread_array;
     pthread_t db_thread_id;
     
@@ -35,16 +38,31 @@ int main( int argc, char *argv[])
         exit(1);
     }
    
-    if (0 != update_thread_start(update_thread_array,alg_type,db_size,
-                                update_thread_num,rf_path)){
+    if ( -1 == ( rdf_fd = open(rf_path, O_RDONLY)))
+    {
+        perror( "random file open error!\n");
+        return -1;
+    }
+    map_buf = ( int *)mmap(NULL,1024 * sizeof(int),
+                                    PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
+    if ( MAP_FAILED == map_buf )
+    {
+        perror("mmap failed!");
+        return -2;
+    }
+    if (0 != update_thread_start(&update_thread_array,alg_type,db_size,
+                                update_thread_num,map_buf,1024)){
         exit(1);
     }
      //wait for quit
+    pthread_join( db_thread_id,NULL);
     for ( i = 0;i < update_thread_num ; i ++){
-        pthread_join( update_thread_array[i],NULL);
+        
+        pthread_join(update_thread_array[i],NULL);
         printf("update thread %d exit!\n",i);
     }
-    pthread_join( db_thread_id,NULL);
+    free(update_thread_array);
+    close(rdf_fd);
     exit(1);
 }
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size)
@@ -67,45 +85,41 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size)
     return 0;
 
 }
-int update_thread_start(pthread_t * update_thread_id_array,int alg_type,
-                        int db_size,int thread_num,char *rf_name)
+int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
+                        const int db_size,const int thread_num,int *map_buf,const int map_size)
 {
-    update_thread_info update_info;
-    int rdf_fd;
+
     int i;
+    update_thread_info update_info;
+    pthread_barrier_t update_brr_init;
     
     update_info.alg_type = alg_type;
     update_info.db_size = db_size;
+    update_info.random_buffer = map_buf;
+    update_info.random_buffer_size = map_size;
+    pthread_barrier_init( &update_brr_init, NULL,thread_num  +1);
+    update_info.update_brr_init = &update_brr_init;
     
-    if ( -1 == ( rdf_fd = open(rf_name, O_RDONLY)))
-    {
-        perror( "random file open error!\n");
-        return -1;
-    }
-    update_info.random_buffer = ( int *)mmap(NULL,1024 * sizeof(int),
-                                    PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
-    if ( MAP_FAILED == update_info.random_buffer )
-    {
-        perror("mmap failed!");
-        return -2;
-    }
-    update_info.random_buffer_size = 1024;
     
-    if (NULL == (update_thread_id_array 
+    printf("thread num:%d\n",thread_num);
+    if (NULL == ((*update_thread_id_array) 
                     = (pthread_t *)malloc(sizeof(pthread_t) * thread_num)))
     {
         perror("update thread array malloc error");
     }
     for ( i = 0; i < thread_num ; i++)
     {
-        if ( 0 != pthread_create( &(update_thread_id_array[i]), NULL,
-                                    update_thread,&update_info))
+        
+        if ( 0 != pthread_create( &((*update_thread_id_array)[i]), NULL,update_thread,&update_info))
         {
-            perror("update thread %d create error",i);
+            printf("update thread %d create error",i);
         }else
         {
             printf("update thread %d create success\n",i);
         }
     }
+    pthread_barrier_wait( &update_brr_init);
+    pthread_barrier_destroy( &update_brr_init);
     return 0;
+
 }

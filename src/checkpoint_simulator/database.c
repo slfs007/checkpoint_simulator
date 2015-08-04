@@ -15,6 +15,7 @@ int db_naive_init(int db_size)
     if ( NULL == (db_naive_AS = ( int *)malloc( sizeof(int) * db_size)))
     {
         perror("da_navie_AS malloc error");
+        return -1;
     }
     
     DB_SIZE = db_size;
@@ -22,15 +23,19 @@ int db_naive_init(int db_size)
     if ( NULL == (db_naive_AS_shandow = ( int *)malloc( sizeof(int) * db_size)))
     {
         perror("db_navie_AS_shandow malloc error");
+        return -1;
     }
     if ( 0 != pthread_mutex_init(&naive_db_mutex,NULL))
     {
         perror("navie_db_mutex init error");
+        return -1;
     }
     if ( 0!= pthread_mutex_init(&write_mutex,NULL))
     {
         perror("write_mutex init error");
+        return -1;
     }
+    return 0;
 }
 void *database_thread(void *arg)
 {
@@ -59,10 +64,11 @@ void *database_thread(void *arg)
     while( 1)
     {
         //checkpoint 
+        if (ckp_id >= 10)
+            break;
         ckp_naive(ckp_id);
         ckp_id ++;
-        if (ckp_id > 10)
-            break;
+        
     }
     printf("database thread exit\n");
     pthread_mutex_destroy(&naive_db_mutex);
@@ -89,6 +95,7 @@ int ckp_naive( int ckp_id)
     fwrite(db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
     fflush(ckp_file);
     fclose(ckp_file);
+    return 0;
 }
 int naive_read( int index)
 {

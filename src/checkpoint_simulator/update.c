@@ -8,9 +8,9 @@ void *update_thread(void *arg)
     int alg_type = (( update_thread_info *)arg) ->alg_type;
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
-    int i;
-    int buf;
+    pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
     
+    printf("alg_type:%d\n",alg_type);
     if ( 0 == alg_type )
     {
         db_write = naive_write;
@@ -19,17 +19,6 @@ void *update_thread(void *arg)
     {
         perror("alg_type error");
     }
-    for ( i = 0; i < random_buffer_size; i ++)
-    {
-        buf = random_buffer[ i];
-        if ( 0 == buf/2)
-        {
-            db_read(buf%db_size);
-        }else
-        {
-            db_write(buf%db_size,buf);
-        }
-    }
-
-    return;
+    pthread_barrier_wait( update_brr_init);
+    pthread_exit(NULL);
 }
