@@ -2,6 +2,7 @@
 #include"database.h"
 #include<fcntl.h>
 #include<stdio.h>
+
 void *update_thread(void *arg)
 {
     int db_size = (( update_thread_info *)arg) ->db_size ;
@@ -10,7 +11,7 @@ void *update_thread(void *arg)
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
     
-    printf("alg_type:%d\n",alg_type);
+
     if ( 0 == alg_type )
     {
         db_write = naive_write;

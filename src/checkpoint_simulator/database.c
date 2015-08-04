@@ -19,6 +19,7 @@ int db_naive_init(int db_size)
     }
     
     DB_SIZE = db_size;
+    memset(db_naive_AS,'S',sizeof( int) * db_size);
     
     if ( NULL == (db_naive_AS_shandow = ( int *)malloc( sizeof(int) * db_size)))
     {
@@ -52,10 +53,12 @@ void *database_thread(void *arg)
         if (0 != db_naive_init(db_size))
         {
             perror("db_navie_init error");
+            goto DB_EXIT;
         }
     }else
     {
         perror("alg type error");
+        goto DB_EXIT;
     }
     printf("database thread init success!\n");
     pthread_barrier_wait( ckp_db_b);
@@ -70,11 +73,13 @@ void *database_thread(void *arg)
         ckp_id ++;
         
     }
+DB_EXIT:
     printf("database thread exit\n");
     pthread_mutex_destroy(&naive_db_mutex);
     pthread_mutex_destroy(&write_mutex);
     
-    
+    free(db_naive_AS);
+    free(db_naive_AS_shandow);
     pthread_exit(NULL);
 }
 int ckp_naive( int ckp_id)
@@ -82,12 +87,14 @@ int ckp_naive( int ckp_id)
     FILE *ckp_file;
     char ckp_name[32];
     
+    
     sprintf(ckp_name,"%d",ckp_id);
-    if ( NULL == ( ckp_file = fopen(ckp_name,"w")))
+    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error");
     }
 
+    
     pthread_mutex_lock(&naive_db_mutex);
     memcpy(db_naive_AS_shandow,db_naive_AS,sizeof( int) * DB_SIZE);
     pthread_mutex_unlock(&naive_db_mutex);

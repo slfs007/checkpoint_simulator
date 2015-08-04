@@ -21,6 +21,7 @@ int main( int argc, char *argv[])
     int rdf_fd;
     pthread_t *update_thread_array;
     pthread_t db_thread_id;
+
     
     if ( argc != 5){
         perror("usage:./ckp_cimulator [update thread number] [database size] "
@@ -43,8 +44,11 @@ int main( int argc, char *argv[])
         perror( "random file open error!\n");
         return -1;
     }
+   
     map_buf = ( int *)mmap(NULL,1024 * sizeof(int),
                                     PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
+
+
     if ( MAP_FAILED == map_buf )
     {
         perror("mmap failed!");
@@ -52,7 +56,7 @@ int main( int argc, char *argv[])
     }
     if (0 != update_thread_start(&update_thread_array,alg_type,db_size,
                                 update_thread_num,map_buf,1024)){
-        exit(1);
+        return -3;
     }
      //wait for quit
     pthread_join( db_thread_id,NULL);
