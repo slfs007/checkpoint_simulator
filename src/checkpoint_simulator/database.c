@@ -1,13 +1,16 @@
 #include"database.h"
 #include<stdio.h>
-
 #include<stdlib.h>
 #include<string.h>
+#include<time.h>
 static int *db_naive_AS;
 static int *db_naive_AS_shandow;
 static int DB_SIZE;
 static pthread_mutex_t naive_db_mutex;
 static pthread_mutex_t write_mutex;
+
+void inline ckp_naive( int ckp_id);
+void log_time_write( struct timespec *log,int log_size);
 
 int db_naive_init(int db_size)
 {
@@ -44,6 +47,7 @@ void *database_thread(void *arg)
     int alg_type = ((db_thread_info *)arg)->alg_type;
     int ckp_id;
     pthread_barrier_t *ckp_db_b;
+    struct timespec ckp_time_log[2000];
     
     ckp_db_b = ((db_thread_info *)arg)->ckp_db_barrier;
     
@@ -66,9 +70,11 @@ void *database_thread(void *arg)
     ckp_id = 0;
     while( 1)
     {
+        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
         ckp_naive(ckp_id%10);
+        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
-        if (ckp_id > 1000)
+        if (ckp_id >= 500)
             break;
     }
 DB_EXIT:
@@ -78,9 +84,10 @@ DB_EXIT:
     
     free(db_naive_AS);
     free(db_naive_AS_shandow);
+    log_time_write(ckp_time_log,1000);
     pthread_exit(NULL);
 }
-int ckp_naive( int ckp_id)
+void inline ckp_naive( int ckp_id)
 {
     FILE *ckp_file;
     char ckp_name[32];
@@ -90,9 +97,9 @@ int ckp_naive( int ckp_id)
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
+        return;
     }
 
-    
     pthread_mutex_lock(&naive_db_mutex);
     memcpy(db_naive_AS_shandow,db_naive_AS,sizeof( int) * DB_SIZE);
     pthread_mutex_unlock(&naive_db_mutex);
@@ -100,7 +107,6 @@ int ckp_naive( int ckp_id)
     fwrite(db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
     fflush(ckp_file);
     fclose(ckp_file);
-    return 0;
 }
 int naive_read( int index)
 {
@@ -120,4 +126,19 @@ int naive_write( int index,int value)
     pthread_mutex_unlock(&write_mutex);
     pthread_mutex_unlock(&naive_db_mutex);
     return 0;
+}
+void log_time_write( struct timespec *log,int log_size)
+{
+    FILE *log_time;
+    int i;
+
+    
+    if ( NULL == (log_time = fopen("./log/db_log_time","w"))){
+        perror("log_time fopen error,checkout if the floder is exist");
+        return;
+    }
+    for (i = 0; i < log_size; i ++)
+    {
+        fprintf(log_time,"%ld,%ld\n",log[i].tv_sec,log[i].tv_nsec);
+    }
 }
