@@ -39,26 +39,28 @@ int random_update_db( int *random_buf,int buf_size)
 {
     int i;
     int buf;
-    
+    struct timespec log_thread_time;
+    FILE *log_thread;
+    log_thread = fopen("./log/log_update_time","w");
     i = 0;
     while(1)
     {
+        
         pthread_rwlock_rdlock(&DB_STATE_rw_lock);
         if ( 1 != DB_STATE ){
             printf("update thread prepare to exit\n");
             
             break;
         }
-        
         buf = random_buf[i%buf_size];
-        if ( 0 == (buf % 2)){
-            db_read(buf);
-        }else{
-            db_write(buf,buf);
-        }
+        clock_gettime(CLOCK_MONOTONIC, &log_thread_time);
+        fprintf(log_thread,"%ld,%ld\n",log_thread_time.tv_sec,log_thread_time.tv_nsec);
+        db_write(buf%DB_SIZE,buf);
         i++;
+   
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
     }
-    
+    fclose(log_thread);
+    printf("%d\n",i);
     return 0;
 }

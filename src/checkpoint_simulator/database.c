@@ -84,6 +84,7 @@ void *database_thread(void *arg)
         ckp_naive(ckp_id%10);
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
+        putchar('.');
         if (ckp_id >= 500)
         {
             pthread_rwlock_wrlock(&DB_STATE_rw_lock);
