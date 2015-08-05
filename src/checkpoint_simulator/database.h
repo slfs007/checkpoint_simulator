@@ -23,7 +23,6 @@ typedef struct{
 void *database_thread(void *arg);
 int naive_read( int index);
 int naive_write( int index,int value);
-
 int db_naive_init(int db_size);
 
 #ifdef	__cplusplus

@@ -7,6 +7,7 @@
 #include<fcntl.h>
 #include<unistd.h>
 
+pthread_barrier_t brr_exit;
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size);
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
                         const int db_size,const int thread_num,
@@ -34,6 +35,8 @@ int main( int argc, char *argv[])
     alg_type = atoi( argv[3]);
     rf_path = argv[4];
    
+    //init the brr_exit
+    pthread_barrier_init(&brr_exit,NULL,update_thread_num + 1);
     //start db_thread
 
     if (0 != db_thread_start(&db_thread_id,alg_type,db_size)){
@@ -67,6 +70,7 @@ int main( int argc, char *argv[])
     }
     free(update_thread_array);
     close(rdf_fd);
+    pthread_barrier_destroy(&brr_exit);
     exit(1);
 }
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size)

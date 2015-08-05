@@ -9,6 +9,9 @@ static int DB_SIZE;
 static pthread_mutex_t naive_db_mutex;
 static pthread_mutex_t write_mutex;
 
+int DB_STATE;
+pthread_rwlock_t DB_STATE_rw_lock;
+extern pthread_barrier_t brr_exit;
 void inline ckp_naive( int ckp_id);
 void log_time_write( struct timespec *log,int log_size);
 
@@ -39,6 +42,13 @@ int db_naive_init(int db_size)
         perror("write_mutex init error");
         return -1;
     }
+    pthread_rwlock_init(&DB_STATE_rw_lock,NULL);
+    
+    pthread_rwlock_wrlock(&DB_STATE_rw_lock);
+    DB_STATE = 1;
+    pthread_rwlock_unlock(&DB_STATE_rw_lock);
+    
+   
     return 0;
 }
 void *database_thread(void *arg)
@@ -75,12 +85,21 @@ void *database_thread(void *arg)
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
         if (ckp_id >= 500)
+        {
+            pthread_rwlock_wrlock(&DB_STATE_rw_lock);
+            DB_STATE = 0;
+            pthread_rwlock_unlock(&DB_STATE_rw_lock);
             break;
+        }
     }
+
 DB_EXIT:
+    //barrier
+    pthread_barrier_wait(&brr_exit);
     printf("database thread exit\n");
     pthread_mutex_destroy(&naive_db_mutex);
     pthread_mutex_destroy(&write_mutex);
+    pthread_rwlock_destroy(&DB_STATE_rw_lock);
     
     free(db_naive_AS);
     free(db_naive_AS_shandow);
@@ -110,6 +129,8 @@ void inline ckp_naive( int ckp_id)
 }
 int naive_read( int index)
 {
+    if ( index >= DB_SIZE)
+        index = index % DB_SIZE;
     return db_naive_AS[index];
 }
 int naive_write( int index,int value)
@@ -132,8 +153,7 @@ void log_time_write( struct timespec *log,int log_size)
     FILE *log_time;
     int i;
 
-    
-    if ( NULL == (log_time = fopen("./log/db_log_time","w"))){
+   if ( NULL == (log_time = fopen("./log/db_log_time","w"))){
         perror("log_time fopen error,checkout if the floder is exist");
         return;
     }
