@@ -118,7 +118,7 @@ int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
     }
     for ( i = 0; i < thread_num ; i++)
     {
-        
+        update_info.pthread_id = i;
         if ( 0 != pthread_create( &((*update_thread_id_array)[i]), 
                 NULL,update_thread,&update_info))
         {

@@ -18,7 +18,7 @@ typedef struct{
     int *random_buffer;
     int random_buffer_size;
     pthread_barrier_t *update_brr_init;
-
+    int pthread_id;
 
 }update_thread_info;
 void *update_thread(void *arg);

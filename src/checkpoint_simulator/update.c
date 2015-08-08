@@ -3,7 +3,7 @@
 #include<fcntl.h>
 #include<stdio.h>
 
-int random_update_db( int *random_buf,int buf_size);
+int random_update_db( int *random_buf,int buf_size,int thread_id);
 
 int (*db_read)( int index);
 int (*db_write)( int index,int value);
@@ -18,7 +18,7 @@ void *update_thread(void *arg)
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
-    
+    int pthread_id = (( update_thread_info *)arg)->pthread_id;
     DB_SIZE = db_size;
     if ( 0 == alg_type )
     {
@@ -31,17 +31,20 @@ void *update_thread(void *arg)
 
     pthread_barrier_wait( update_brr_init);
  
-    random_update_db( random_buffer,random_buffer_size);
+    random_update_db( random_buffer,random_buffer_size,pthread_id);
     pthread_barrier_wait(&brr_exit);
     pthread_exit(NULL);
 }
-int random_update_db( int *random_buf,int buf_size)
+int random_update_db( int *random_buf,int buf_size,const int thread_id)
 {
     int i;
     int buf;
     struct timespec log_thread_time;
     FILE *log_thread;
-    log_thread = fopen("./log/log_update_time","w");
+    char str[64];
+    
+    sprintf(str,"./log/log_update_%d",thread_id);
+    log_thread = fopen(str,"w");
     i = 0;
     while(1)
     {
@@ -49,13 +52,14 @@ int random_update_db( int *random_buf,int buf_size)
         pthread_rwlock_rdlock(&DB_STATE_rw_lock);
         if ( 1 != DB_STATE ){
             printf("update thread prepare to exit\n");
-            
             break;
         }
         buf = random_buf[i%buf_size];
         clock_gettime(CLOCK_MONOTONIC, &log_thread_time);
         fprintf(log_thread,"%ld,%ld\n",log_thread_time.tv_sec,log_thread_time.tv_nsec);
         db_write(buf%DB_SIZE,buf);
+        clock_gettime(CLOCK_MONOTONIC, &log_thread_time);
+        fprintf(log_thread,"%ld,%ld\n",log_thread_time.tv_sec,log_thread_time.tv_nsec);
         i++;
    
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
