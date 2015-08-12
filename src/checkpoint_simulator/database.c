@@ -3,68 +3,69 @@
 #include<stdlib.h>
 #include<string.h>
 #include<time.h>
-static int *db_naive_AS;
-static int *db_naive_AS_shandow;
+db_naive_infomation db_naive_info;
 static int DB_SIZE;
-static pthread_mutex_t naive_db_mutex;
-static pthread_mutex_t write_mutex;
 
 int DB_STATE;
 pthread_rwlock_t DB_STATE_rw_lock;
-extern pthread_barrier_t brr_exit;
-void inline ckp_naive( int ckp_id);
-void log_time_write( struct timespec *log,int log_size);
 
-int db_naive_init(int db_size)
+extern pthread_barrier_t brr_exit;
+
+
+int db_naive_init(db_naive_infomation *db_naive_info,int db_size)
 {
     
-    if ( NULL == (db_naive_AS = ( int *)malloc( sizeof(int) * db_size)))
-    {
+    db_naive_info->db_size = db_size;
+    if ( NULL == (db_naive_info->db_naive_AS = 
+            ( int *)malloc( sizeof(int) * db_size))){
         perror("da_navie_AS malloc error");
         return -1;
     }
     
-    DB_SIZE = db_size;
-    memset(db_naive_AS,'S',sizeof( int) * db_size);
     
-    if ( NULL == (db_naive_AS_shandow = ( int *)malloc( sizeof(int) * db_size)))
-    {
+    memset(db_naive_info->db_naive_AS,'S',sizeof( int) * db_size);
+    
+    if ( NULL == (db_naive_info->db_naive_AS_shandow = 
+            ( int *)malloc( sizeof(int) * db_size))){
         perror("db_navie_AS_shandow malloc error");
         return -1;
     }
-    if ( 0 != pthread_mutex_init(&naive_db_mutex,NULL))
+    if ( 0 != pthread_mutex_init(&(db_naive_info->naive_db_mutex),NULL))
     {
         perror("navie_db_mutex init error");
         return -1;
     }
-    if ( 0!= pthread_mutex_init(&write_mutex,NULL))
+    if ( 0!= pthread_mutex_init(&(db_naive_info->write_mutex),NULL))
     {
         perror("write_mutex init error");
         return -1;
     }
-    pthread_rwlock_init(&DB_STATE_rw_lock,NULL);
-    
-    pthread_rwlock_wrlock(&DB_STATE_rw_lock);
-    DB_STATE = 1;
-    pthread_rwlock_unlock(&DB_STATE_rw_lock);
-    
-   
     return 0;
+}
+void db_naive_destory( db_naive_infomation *db_naive_info)
+{
+    pthread_mutex_destroy(& (db_naive_info->naive_db_mutex));
+    pthread_mutex_destroy(& (db_naive_info->write_mutex));
+    free( db_naive_info->db_naive_AS);
+    free( db_naive_info->db_naive_AS_shandow);
 }
 void *database_thread(void *arg)
 {
     int db_size = ((db_thread_info *)arg)->db_size;
     int alg_type = ((db_thread_info *)arg)->alg_type;
     int ckp_id;
+    int ckp_num;
     pthread_barrier_t *ckp_db_b;
     struct timespec ckp_time_log[2000];
     
+    
+    DB_SIZE = db_size;
     ckp_db_b = ((db_thread_info *)arg)->ckp_db_barrier;
     
     printf("database thread start，db_size:%d alg_type:%d\n",db_size,alg_type);
     if ( 0 == alg_type )
     {
-        if (0 != db_naive_init(db_size))
+        if (0 != db_naive_init(&db_naive_info,db_size))
         {
             perror("db_navie_init error");
             goto DB_EXIT;
@@ -74,18 +75,30 @@ void *database_thread(void *arg)
         perror("alg type error");
         goto DB_EXIT;
     }
+    
+    pthread_rwlock_init(&DB_STATE_rw_lock,NULL);
+    pthread_rwlock_wrlock(&DB_STATE_rw_lock);
+    DB_STATE = 1;
+    pthread_rwlock_unlock(&DB_STATE_rw_lock);
+    
     printf("database thread init success!\n");
     pthread_barrier_wait( ckp_db_b);
     
     ckp_id = 0;
+    ckp_num = 500;
     while( 1)
     {
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
-        ckp_naive(ckp_id%10);
+        switch(alg_type)
+        {
+            case 0:
+                ckp_naive(ckp_id%10,&db_naive_info);
+                break;
+        }
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
 
-        if (ckp_id >= 500)
+        if (ckp_id >= ckp_num)
         {
             pthread_rwlock_wrlock(&DB_STATE_rw_lock);
             DB_STATE = 0;
@@ -98,16 +111,12 @@ DB_EXIT:
     //barrier
     pthread_barrier_wait(&brr_exit);
     printf("database thread exit\n");
-    pthread_mutex_destroy(&naive_db_mutex);
-    pthread_mutex_destroy(&write_mutex);
     pthread_rwlock_destroy(&DB_STATE_rw_lock);
-    
-    free(db_naive_AS);
-    free(db_naive_AS_shandow);
-    log_time_write(ckp_time_log,1000);
+    db_naive_destory( &db_naive_info);
+    log_time_write(ckp_time_log,ckp_num * 2);
     pthread_exit(NULL);
 }
-void inline ckp_naive( int ckp_id)
+void inline ckp_naive( int ckp_id, db_naive_infomation *db_naive_info)
 {
     FILE *ckp_file;
     char ckp_name[32];
@@ -120,11 +129,11 @@ void inline ckp_naive( int ckp_id)
         return;
     }
 
-    pthread_mutex_lock(&naive_db_mutex);
-    memcpy(db_naive_AS_shandow,db_naive_AS,sizeof( int) * DB_SIZE);
-    pthread_mutex_unlock(&naive_db_mutex);
+    pthread_mutex_lock(& (db_naive_info->naive_db_mutex));
+    memcpy(db_naive_info->db_naive_AS_shandow,db_naive_info->db_naive_AS,sizeof( int) * DB_SIZE);
+    pthread_mutex_unlock(&(db_naive_info->naive_db_mutex));
     
-    fwrite(db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
+    fwrite(db_naive_info->db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
     fflush(ckp_file);
     fclose(ckp_file);
 }
@@ -132,7 +141,7 @@ int naive_read( int index)
 {
     if ( index >= DB_SIZE)
         index = index % DB_SIZE;
-    return db_naive_AS[index];
+    return db_naive_info.db_naive_AS[index];
 }
 int naive_write( int index,int value)
 {
@@ -140,13 +149,13 @@ int naive_write( int index,int value)
     {
         return -1;
     }
-    pthread_mutex_lock(&naive_db_mutex);
-    pthread_mutex_lock(&write_mutex);
+    pthread_mutex_lock(&(db_naive_info.naive_db_mutex));
+    pthread_mutex_lock(&(db_naive_info.write_mutex));
     
-    db_naive_AS[index] = value;
+    db_naive_info.db_naive_AS[index] = value;
     
-    pthread_mutex_unlock(&write_mutex);
-    pthread_mutex_unlock(&naive_db_mutex);
+    pthread_mutex_unlock(&(db_naive_info.write_mutex));
+    pthread_mutex_unlock(&(db_naive_info.naive_db_mutex));
     return 0;
 }
 void log_time_write( struct timespec *log,int log_size)
