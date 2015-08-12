@@ -85,7 +85,7 @@ void *database_thread(void *arg)
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
 
-        if (ckp_id >= 50)
+        if (ckp_id >= 500)
         {
             pthread_rwlock_wrlock(&DB_STATE_rw_lock);
             DB_STATE = 0;

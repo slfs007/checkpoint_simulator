@@ -39,7 +39,9 @@ int random_update_db( int *random_buf,int buf_size,const int thread_id)
 {
     int i;
     int buf;
-    struct timespec log_thread_time;
+    struct timespec log_thread_time_start;
+    struct timespec log_thread_time_end;
+    
     FILE *log_thread;
     char str[64];
     
@@ -55,11 +57,17 @@ int random_update_db( int *random_buf,int buf_size,const int thread_id)
             break;
         }
         buf = random_buf[i%buf_size];
-        clock_gettime(CLOCK_MONOTONIC, &log_thread_time);
-        fprintf(log_thread,"%ld,%ld\n",log_thread_time.tv_sec,log_thread_time.tv_nsec);
-        db_write(buf%DB_SIZE,buf);
-        clock_gettime(CLOCK_MONOTONIC, &log_thread_time);
-        fprintf(log_thread,"%ld,%ld\n",log_thread_time.tv_sec,log_thread_time.tv_nsec);
+        
+        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
+        if ( 0 == buf % 2){
+            db_write(buf%DB_SIZE,buf);
+        }else{
+            db_read(buf%DB_SIZE);
+        }
+        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
+        fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
+        
+        fprintf(log_thread,"%ld,%ld\n",log_thread_time_end.tv_sec,log_thread_time_end.tv_nsec);
         i++;
    
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
