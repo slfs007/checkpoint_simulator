@@ -20,12 +20,15 @@ void *update_thread(void *arg)
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
     int pthread_id = (( update_thread_info *)arg)->pthread_id;
     DB_SIZE = db_size;
+    
     if ( 0 == alg_type )
     {
         db_write = naive_write;
         db_read = naive_read;
-    }else
-    {
+    }else if ( 1 == alg_type){
+        db_write = cou_write;
+        db_read = cou_read;
+    }else{
         perror("alg_type error");
     }
 
@@ -59,14 +62,10 @@ int random_update_db( int *random_buf,int buf_size,const int thread_id)
         buf = random_buf[i%buf_size];
         
         clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
-        if ( 0 == buf % 2){
-            db_write(buf%DB_SIZE,buf);
-        }else{
-            db_read(buf%DB_SIZE);
-        }
+        db_write(buf%DB_SIZE,buf);
         clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
-        fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
         
+        fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
         fprintf(log_thread,"%ld,%ld\n",log_thread_time_end.tv_sec,log_thread_time_end.tv_nsec);
         i++;
    
