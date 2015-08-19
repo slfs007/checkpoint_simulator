@@ -37,7 +37,6 @@ typedef struct{
     int *db_cou_primary;
     int *db_cou_shandow;
     unsigned char *db_cou_bitarray;
-    pthread_rwlock_t *db_cou_lock;
     pthread_mutex_t db_mutex;
 
 }db_cou_infomation;

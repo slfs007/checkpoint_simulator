@@ -70,8 +70,8 @@ int random_update_db( int *random_buf,int buf_size,char *log_name)
         db_write(buf%DB_SIZE,buf);
         clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
         
-        fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
-        fprintf(log_thread,"%ld,%ld\n",log_thread_time_end.tv_sec,log_thread_time_end.tv_nsec);
+     //   fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
+     //   fprintf(log_thread,"%ld,%ld\n",log_thread_time_end.tv_sec,log_thread_time_end.tv_nsec);
         i++;
    
         pthread_rwlock_unlock(&DB_STATE_rw_lock);

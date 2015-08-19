@@ -14,7 +14,6 @@ extern pthread_barrier_t brr_exit;
 
 int db_cou_init(void *cou_info,int db_size)
 {
-    int i;
     db_cou_infomation *info;
     
     info = cou_info;
@@ -41,15 +40,6 @@ int db_cou_init(void *cou_info,int db_size)
     }
     memset(info->db_cou_bitarray,0, db_size);
     
-    if ( NULL == (info->db_cou_lock = 
-            (pthread_rwlock_t *)malloc(sizeof(pthread_rwlock_t) * db_size))){
-        perror("db_cou_lock malloc error" );
-        return -1;
-    }
-    
-    for (i = 0; i < db_size; i++){
-        pthread_rwlock_init( &(info->db_cou_lock[i]),NULL);
-    }
     pthread_mutex_init(&(info->db_mutex), NULL);
     
     return 0;
@@ -59,9 +49,7 @@ int cou_read( int index)
     int result;
     if ( index > DB_SIZE)
         index = index % DB_SIZE;
-    pthread_rwlock_rdlock( &(db_cou_info.db_cou_lock[index]));
     result = db_cou_info.db_cou_primary[index];
-    pthread_rwlock_unlock( &(db_cou_info.db_cou_lock[index]));
     return result;
 }
 int cou_write( int index, int value)
@@ -70,10 +58,8 @@ int cou_write( int index, int value)
         index = index % DB_SIZE;
     
     pthread_mutex_lock( &(db_cou_info.db_mutex));
-    pthread_rwlock_wrlock( &(db_cou_info.db_cou_lock[index]));
     db_cou_info.db_cou_bitarray[index] = 1;
     db_cou_info.db_cou_primary[index] = value;
-    pthread_rwlock_unlock( &(db_cou_info.db_cou_lock[index]));
     pthread_mutex_unlock( &(db_cou_info.db_mutex));
     return 0;
 }
@@ -86,7 +72,7 @@ void ckp_cou( int ckp_id,void *cou_info)
     db_cou_infomation *info;
     
     info = cou_info;
-    sprintf(ckp_name,"./ckp_backup/%d",ckp_id);
+    sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_id);
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
@@ -109,21 +95,14 @@ void ckp_cou( int ckp_id,void *cou_info)
 }
 void db_cou_destroy( void *cou_info)
 {
-    int i;
     db_cou_infomation *info;
     
     info = cou_info;
     
-    for (i = 0; i < info->db_size ; i++){
-        pthread_rwlock_destroy(&(info->db_cou_lock[i]));
-    }
-    
     pthread_mutex_destroy( &(info->db_mutex));
     free(info->db_cou_bitarray);
-    free(info->db_cou_lock);
-    free(info->db_cou_primary);
     free(info->db_cou_shandow);
-
+    free(info->db_cou_primary);
 }
 int db_naive_init(void *naive_info,int db_size)
 {
@@ -219,7 +198,7 @@ void *database_thread(void *arg)
     pthread_barrier_wait( ckp_db_b);
     
     ckp_id = 0;
-    ckp_num = 500;
+    ckp_num = 50;
     while( 1)
     {
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
@@ -255,7 +234,7 @@ void ckp_naive( int ckp_id, void *naive_info)
     db_naive_infomation *info;
     
     info = naive_info;
-    sprintf(ckp_name,"./ckp_backup/%d",ckp_id);
+    sprintf(ckp_name,"./ckp_backup/naive_%d",ckp_id);
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
@@ -290,9 +269,7 @@ int naive_write( int index,int value)
     }
     pthread_mutex_lock(&(db_naive_info.naive_db_mutex));
     pthread_rwlock_wrlock(&(db_naive_info.write_mutex));
-    
     db_naive_info.db_naive_AS[index] = value;
-    
     pthread_rwlock_unlock(&(db_naive_info.write_mutex));
     pthread_mutex_unlock(&(db_naive_info.naive_db_mutex));
     return 0;
