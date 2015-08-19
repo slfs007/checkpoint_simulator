@@ -3,7 +3,7 @@
 #include<fcntl.h>
 #include<stdio.h>
 
-int random_update_db( int *random_buf,int buf_size,int thread_id);
+
 
 int (*db_read)( int index);
 int (*db_write)( int index,int value);
@@ -19,26 +19,33 @@ void *update_thread(void *arg)
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
     int pthread_id = (( update_thread_info *)arg)->pthread_id;
+    char log_name[128];
+    
     DB_SIZE = db_size;
     
-    if ( 0 == alg_type )
-    {
-        db_write = naive_write;
-        db_read = naive_read;
-    }else if ( 1 == alg_type){
-        db_write = cou_write;
-        db_read = cou_read;
-    }else{
-        perror("alg_type error");
+    switch(alg_type){
+        case NAIVE_ALG:
+            db_write = naive_write;
+            db_read = naive_read;
+            snprintf(log_name,sizeof(log_name),"./log/naive_update_log_%d",pthread_id);
+            break;
+        case COPY_ON_UPDATE_ALG:
+            db_write = cou_write;
+            db_read = cou_read;
+            snprintf(log_name,sizeof(log_name),"./log/cou_update_log_%d",pthread_id);
+            break;
+        default:
+            perror("alg_type error");
+            break;
     }
 
     pthread_barrier_wait( update_brr_init);
  
-    random_update_db( random_buffer,random_buffer_size,pthread_id);
+    random_update_db( random_buffer,random_buffer_size,log_name);
     pthread_barrier_wait(&brr_exit);
     pthread_exit(NULL);
 }
-int random_update_db( int *random_buf,int buf_size,const int thread_id)
+int random_update_db( int *random_buf,int buf_size,char *log_name)
 {
     int i;
     int buf;
@@ -46,10 +53,8 @@ int random_update_db( int *random_buf,int buf_size,const int thread_id)
     struct timespec log_thread_time_end;
     
     FILE *log_thread;
-    char str[64];
     
-    sprintf(str,"./log/log_update_%d",thread_id);
-    log_thread = fopen(str,"w");
+    log_thread = fopen(log_name,"w+");
     i = 0;
     while(1)
     {

@@ -1,9 +1,11 @@
 __author__ = 'mk'
 import matplotlib.pyplot as plt
-import re
+import sys
 
+log_file_path = sys.argv[1]
+plot_name = sys.argv[2]
 
-db_log = open('../log/log_update_0')
+db_log = open(log_file_path)
 line = db_log.readline()
 num1str,num2str = line.split(',')
 num1 = int(num1str)
@@ -29,6 +31,7 @@ for i in range(0,len(db_log_list),1):
 
 print len(db_log_x_list),len(db_log_y_list)
 plt.plot( range(0,len(db_log_y_list),1),db_log_y_list)
+plt.ylabel(plot_name)
 plt.show()
 db_log.close()
 

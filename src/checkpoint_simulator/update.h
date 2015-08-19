@@ -22,7 +22,7 @@ typedef struct{
 
 }update_thread_info;
 void *update_thread(void *arg);
-
+int random_update_db( int *random_buf,int buf_size,char *log_name);
 
 #ifdef	__cplusplus
 }
