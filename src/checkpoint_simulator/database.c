@@ -7,6 +7,8 @@ db_naive_infomation db_naive_info;
 db_cou_infomation db_cou_info;
 static int DB_SIZE;
 //
+struct timespec ckp_time_log[2000];// 临时设置的全局变量
+int ckp_id;
 
 int DB_STATE;
 pthread_rwlock_t DB_STATE_rw_lock;
@@ -62,7 +64,7 @@ int cou_write( int index, int value)
     pthread_mutex_unlock( &(db_cou_info.db_mutex));
     return 0;
 }
-void ckp_cou( int ckp_id,void *cou_info)
+void ckp_cou( int ckp_order,void *cou_info)
 {
     FILE *ckp_file;
     char ckp_name[32];
@@ -71,7 +73,7 @@ void ckp_cou( int ckp_id,void *cou_info)
     db_cou_infomation *info;
     
     info = cou_info;
-    sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_id);
+    sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
@@ -79,18 +81,23 @@ void ckp_cou( int ckp_id,void *cou_info)
     }
     db_size = info->db_size;
     pthread_mutex_lock(&(info->db_mutex));
+    
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
+        
     for (i = 0; i < db_size; i ++){
         if ( 1 == info->db_cou_bitarray[i]){
             info->db_cou_bitarray[i] = 0;
-            info->db_cou_shandow[i] = 
-                    info->db_cou_primary[i];
+            memcpy(&(info->db_cou_shandow[i]),
+                    &(info->db_cou_primary[i]),sizeof(int));
+
         }
     }
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
     pthread_mutex_unlock(&(info->db_mutex));
     
     fwrite(info->db_cou_shandow,sizeof( int),db_size,ckp_file);
     fflush(ckp_file);
-    fclose(ckp_file);
+    fclose(ckp_file); 
 }
 void db_cou_destroy( void *cou_info)
 {
@@ -149,11 +156,10 @@ void *database_thread(void *arg)
     int db_size = ((db_thread_info *)arg)->db_size;
     int alg_type = ((db_thread_info *)arg)->alg_type;
     pthread_barrier_t *brr_exit = ((db_thread_info *)arg)->brr_db_exit;
-    int ckp_id;
     int ckp_num;
     
     pthread_barrier_t *ckp_db_b;
-    struct timespec ckp_time_log[2000];
+    
     char db_log_name[128];
     int (*db_init)(void *,int);
     void (*checkpoint)( int ,void *);
@@ -203,11 +209,10 @@ void *database_thread(void *arg)
     ckp_num = 50;
     while( 1)
     {
-        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
-        checkpoint(ckp_id%10, info);
-        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
-        ckp_id ++;
+        printf("ckp id:%d\n",ckp_id);
 
+        checkpoint(ckp_id%10, info);
+        ckp_id ++;
         if (ckp_id >= ckp_num)
         {
             pthread_rwlock_wrlock(&DB_STATE_rw_lock);
@@ -225,22 +230,32 @@ DB_EXIT:
     log_time_write(ckp_time_log,ckp_num * 2,db_log_name);
     pthread_exit(NULL);
 }
-void ckp_naive( int ckp_id, void *naive_info)
+void ckp_naive( int ckp_order, void *naive_info)
 {
     FILE *ckp_file;
     char ckp_name[32];
     db_naive_infomation *info;
+    int i;
+    int db_size;
     
     info = naive_info;
-    sprintf(ckp_name,"./ckp_backup/naive_%d",ckp_id);
+    sprintf(ckp_name,"./ckp_backup/naive_%d",ckp_order);
     if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
     }
+    db_size = info->db_size;
 
     pthread_mutex_lock(& (info->naive_db_mutex));
-    memcpy(info->db_naive_AS_shandow,info->db_naive_AS,sizeof( int) * DB_SIZE);
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
+
+    for ( i = 0; i < db_size; i ++){
+        memcpy(&(info->db_naive_AS_shandow[i]),
+                &(info->db_naive_AS[i]),sizeof(int));
+    }
+   
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
     pthread_mutex_unlock(&(info->naive_db_mutex));
     
     fwrite(info->db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
