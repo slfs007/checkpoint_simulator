@@ -6,11 +6,10 @@
 db_naive_infomation db_naive_info;
 db_cou_infomation db_cou_info;
 static int DB_SIZE;
+//
 
 int DB_STATE;
 pthread_rwlock_t DB_STATE_rw_lock;
-
-extern pthread_barrier_t brr_exit;
 
 int db_cou_init(void *cou_info,int db_size)
 {
@@ -149,8 +148,10 @@ void *database_thread(void *arg)
 {
     int db_size = ((db_thread_info *)arg)->db_size;
     int alg_type = ((db_thread_info *)arg)->alg_type;
+    pthread_barrier_t *brr_exit = ((db_thread_info *)arg)->brr_db_exit;
     int ckp_id;
     int ckp_num;
+    
     pthread_barrier_t *ckp_db_b;
     struct timespec ckp_time_log[2000];
     char db_log_name[128];
@@ -184,6 +185,7 @@ void *database_thread(void *arg)
             goto DB_EXIT;
             break;
     }
+    
     if ( 0 != db_init(info,db_size)){
         perror("db thread init error!");
         goto DB_EXIT;
@@ -203,7 +205,6 @@ void *database_thread(void *arg)
     {
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
         checkpoint(ckp_id%10, info);
-       
         clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
 
@@ -215,15 +216,12 @@ void *database_thread(void *arg)
             break;
         }
     }
-    pthread_barrier_wait(&brr_exit);
+    pthread_barrier_wait(brr_exit);
     
 DB_EXIT:
     printf("database thread exit\n");
-    
     pthread_rwlock_destroy(&DB_STATE_rw_lock);
     db_destroy(info);
-    
-
     log_time_write(ckp_time_log,ckp_num * 2,db_log_name);
     pthread_exit(NULL);
 }

@@ -18,6 +18,7 @@ void *update_thread(void *arg)
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
+    pthread_barrier_t *brr_exit = (( update_thread_info *)arg)->brr_exit;
     int pthread_id = (( update_thread_info *)arg)->pthread_id;
     char log_name[128];
     
@@ -40,9 +41,10 @@ void *update_thread(void *arg)
     }
 
     pthread_barrier_wait( update_brr_init);
- 
     random_update_db( random_buffer,random_buffer_size,log_name);
-    pthread_barrier_wait(&brr_exit);
+    
+    pthread_barrier_wait( brr_exit);
+    
     pthread_exit(NULL);
 }
 int random_update_db( int *random_buf,int buf_size,char *log_name)
@@ -76,6 +78,7 @@ int random_update_db( int *random_buf,int buf_size,char *log_name)
    
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
     }
+    
     fclose(log_thread);
     printf("%d\n",i);
     return 0;

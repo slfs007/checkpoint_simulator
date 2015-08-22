@@ -21,7 +21,7 @@ typedef struct{
     int db_size;
     int alg_type;
     pthread_barrier_t *ckp_db_barrier;
-
+    pthread_barrier_t *brr_db_exit;
 } db_thread_info;   
 typedef struct{
     int db_size;
