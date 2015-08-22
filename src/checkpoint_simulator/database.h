@@ -56,6 +56,22 @@ int cou_read( int index);
 int cou_write( int index, int value);
 void ckp_cou( int ckp_id,void *cou_info);
 void db_cou_destroy( void *cou_info);
+/*zigzag*/
+typedef struct{
+    int db_size;
+    int *db_zigzag_as0;
+    int *db_zigzag_as1;
+    unsigned char *db_zigzag_mr;
+    unsigned char *db_zigzag_mw;
+    pthread_rwlock_t write_mutex;
+
+}db_zigzag_infomation;
+
+int db_zigzag_init(void *cou_info,int db_size);
+int zigzag_read( int index);
+int zigzag_write( int index, int value);
+void db_zigzag_ckp( int ckp_order,void *cou_info);
+void db_zigzag_destroy( void *cou_info);
 
 #ifdef	__cplusplus
 }

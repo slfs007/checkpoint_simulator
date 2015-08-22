@@ -1,11 +1,4 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<pthread.h>
-#include"database.h"
-#include"update.h"
-#include<sys/mman.h>
-#include<fcntl.h>
-#include<unistd.h>
+#include"include.h"
 
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,
         pthread_barrier_t *brr_exit);
@@ -52,7 +45,7 @@ int main( int argc, char *argv[])
         return -1;
     }
    
-    map_buf = ( int *)mmap(NULL,1024 * sizeof(int),
+    map_buf = ( int *)mmap(NULL,2048 * sizeof(int),
                                     PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
 
     if ( MAP_FAILED == map_buf )

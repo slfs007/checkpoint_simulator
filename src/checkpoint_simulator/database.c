@@ -1,15 +1,15 @@
 #include"database.h"
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<time.h>
+#include"include.h"
+#include "db_zigzag.h" 
+
 db_naive_infomation db_naive_info;
 db_cou_infomation db_cou_info;
+db_zigzag_infomation db_zigzag_info;
 static int DB_SIZE;
-//
-struct timespec ckp_time_log[2000];// 临时设置的全局变量
-int ckp_id;
 
+    struct timespec ckp_time_log[2000];
+    int ckp_id;
+    
 int DB_STATE;
 pthread_rwlock_t DB_STATE_rw_lock;
 
@@ -83,7 +83,6 @@ void ckp_cou( int ckp_order,void *cou_info)
     pthread_mutex_lock(&(info->db_mutex));
     
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
-        
     for (i = 0; i < db_size; i ++){
         if ( 1 == info->db_cou_bitarray[i]){
             info->db_cou_bitarray[i] = 0;
@@ -92,12 +91,12 @@ void ckp_cou( int ckp_order,void *cou_info)
 
         }
     }
-    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
     pthread_mutex_unlock(&(info->db_mutex));
     
     fwrite(info->db_cou_shandow,sizeof( int),db_size,ckp_file);
     fflush(ckp_file);
-    fclose(ckp_file); 
+    fclose(ckp_file);
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
 }
 void db_cou_destroy( void *cou_info)
 {
@@ -157,7 +156,7 @@ void *database_thread(void *arg)
     int alg_type = ((db_thread_info *)arg)->alg_type;
     pthread_barrier_t *brr_exit = ((db_thread_info *)arg)->brr_db_exit;
     int ckp_num;
-    
+
     pthread_barrier_t *ckp_db_b;
     
     char db_log_name[128];
@@ -186,6 +185,13 @@ void *database_thread(void *arg)
             info = &db_cou_info;
             snprintf(db_log_name,sizeof(db_log_name),"./log/cou_ckp_log");
             break;
+        case ZIGZAG_ALG:
+            db_init = db_zigzag_init;
+            checkpoint = db_zigzag_ckp;
+            db_destroy = db_zigzag_destroy;
+            info = &db_zigzag_info;
+            snprintf(db_log_name,sizeof(db_log_name),"./log/zigzag_ckp_log");
+            break;
         default:
             printf("alg_type error!");
             goto DB_EXIT;
@@ -210,8 +216,9 @@ void *database_thread(void *arg)
     while( 1)
     {
         printf("ckp id:%d\n",ckp_id);
-
+//        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
         checkpoint(ckp_id%10, info);
+//        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
         ckp_id ++;
         if (ckp_id >= ckp_num)
         {
@@ -249,18 +256,17 @@ void ckp_naive( int ckp_order, void *naive_info)
 
     pthread_mutex_lock(& (info->naive_db_mutex));
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
-
     for ( i = 0; i < db_size; i ++){
         memcpy(&(info->db_naive_AS_shandow[i]),
                 &(info->db_naive_AS[i]),sizeof(int));
     }
    
-    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
     pthread_mutex_unlock(&(info->naive_db_mutex));
     
     fwrite(info->db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
     fflush(ckp_file);
     fclose(ckp_file);
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
 }
 int naive_read( int index)
 {
@@ -302,4 +308,111 @@ void log_time_write( struct timespec *log,int log_size,char *log_name)
     }
     fflush(log_time);
     fclose(log_time);
+}
+
+int db_zigzag_init(void *zigzag_info,int db_size)
+{
+    db_zigzag_infomation *info;
+    
+    info = zigzag_info;
+    
+    info->db_size = db_size;
+    
+    if ( NULL == (info->db_zigzag_as0 = (int *)malloc(sizeof(int) * db_size))){
+        perror("db_zigzag_as0 malloc error");
+        return -1;
+    }
+    memset(info->db_zigzag_as0,'S',sizeof(int) * db_size);
+    
+    if ( NULL == (info->db_zigzag_as1 = (int *)malloc(sizeof(int) * db_size))){
+        perror("db_zigzag_sa1 malloc error");
+        return -1;
+    }
+    memset(info->db_zigzag_as0,'S',sizeof(int) * db_size);
+    
+    if ( NULL == (info->db_zigzag_mr = (unsigned char *)malloc(db_size))){
+        perror("db_zigzag_mr malloc error");
+        return -1;
+    }
+    memset(info->db_zigzag_mr,0,db_size);
+    
+    if ( NULL == (info->db_zigzag_mw = (unsigned char *)malloc(db_size))){
+        perror("db_zigzag_mw malloc error");
+        return -1;
+    }
+    memset (info->db_zigzag_mw,1,db_size);
+    pthread_rwlock_init( &(info->write_mutex),NULL);
+    return 0;
+}
+int zigzag_read( int index)
+{
+    if (index > db_zigzag_info.db_size)
+        index = index % db_zigzag_info.db_size;
+    if (0 == db_zigzag_info.db_zigzag_mr[index]){
+        return db_zigzag_info.db_zigzag_as0[index];
+    }else{
+        return db_zigzag_info.db_zigzag_as1[index];
+    }
+}
+int zigzag_write( int index, int value)
+{
+    if (index > db_zigzag_info.db_size)
+        index = index % db_zigzag_info.db_size;
+    pthread_rwlock_rdlock(&(db_zigzag_info.write_mutex));
+    if (0 == db_zigzag_info.db_zigzag_mw[index]){
+        db_zigzag_info.db_zigzag_as0[index] = value;        
+    }else{
+        db_zigzag_info.db_zigzag_as1[index] = value;
+    }
+    db_zigzag_info.db_zigzag_mr[index] = db_zigzag_info.db_zigzag_mw[index];
+    pthread_rwlock_unlock(&(db_zigzag_info.write_mutex));
+    return 0;
+}
+
+void db_zigzag_ckp( int ckp_order,void *zigzag_info)
+{
+    FILE *ckp_file;
+    char ckp_name[32];
+    int i;
+    int db_size;
+    db_zigzag_infomation *info;
+    
+    info = zigzag_info;
+    sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
+    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
+    {
+        perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
+        return;
+    }
+    db_size = info->db_size;
+
+    pthread_rwlock_wrlock(&(info->write_mutex));
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
+    //prepare for checkpoint
+    for (i = 0; i < db_size; i ++){
+        info->db_zigzag_mw[i] = !(info->db_zigzag_mr[i]);
+    }
+    pthread_rwlock_unlock(&(info->write_mutex));
+    //write to disk
+    for (i = 0;i < db_size; i ++){
+        if (0 == info->db_zigzag_mw[i]){
+            fwrite(info->db_zigzag_as1,sizeof( int),1,ckp_file);
+        }else{
+            fwrite(info->db_zigzag_as0,sizeof( int),1,ckp_file);
+        }
+    }
+    fflush(ckp_file);
+    fclose(ckp_file); 
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
+}
+void db_zigzag_destroy( void *zigzag_info)
+{
+    db_zigzag_infomation *info;
+    info = zigzag_info;
+    
+    free(info->db_zigzag_as0);
+    free(info->db_zigzag_as1);
+    free(info->db_zigzag_mr);
+    free(info->db_zigzag_mw);
+    pthread_rwlock_destroy( &(info->write_mutex));
 }

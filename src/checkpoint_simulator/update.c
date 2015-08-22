@@ -1,8 +1,5 @@
 #include"update.h"
-#include"database.h"
-#include<fcntl.h>
-#include<stdio.h>
-
+#include"include.h"
 
 
 int (*db_read)( int index);
@@ -34,6 +31,12 @@ void *update_thread(void *arg)
             db_write = cou_write;
             db_read = cou_read;
             snprintf(log_name,sizeof(log_name),"./log/cou_update_log_%d",pthread_id);
+            break;
+        case ZIGZAG_ALG:
+            db_write = zigzag_write;
+            db_read = zigzag_read;
+            snprintf(log_name,sizeof(log_name),"./log/zigzag_update_log_%d",pthread_id);
+            
             break;
         default:
             perror("alg_type error");
