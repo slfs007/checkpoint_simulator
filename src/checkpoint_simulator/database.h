@@ -72,6 +72,24 @@ int zigzag_read( int index);
 int zigzag_write( int index, int value);
 void db_zigzag_ckp( int ckp_order,void *cou_info);
 void db_zigzag_destroy( void *cou_info);
+/*pingpong*/
+typedef struct{
+    int db_size;
+    int *db_pp_as;
+    int *db_pp_as_odd;
+    int *db_pp_as_even;
+    int *db_pp_as_previous;
+    unsigned char *db_pp_odd_ba;
+    unsigned char *db_pp_even_ba;
+    pthread_rwlock_t write_mutex;
+    int current;
+}db_pingpong_infomation;
+
+int db_pingpong_init(void *pp_info,int db_size);
+int pingpong_read( int index);
+int pingpong_write( int index, int value);
+void db_pingpong_ckp( int ckp_order,void *pp_info);
+void db_pingpong_destroy( void *pp_info);
 
 #ifdef	__cplusplus
 }
