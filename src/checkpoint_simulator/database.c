@@ -43,7 +43,7 @@ int db_cou_init(void *cou_info,int db_size)
     }
     memset(info->db_cou_bitarray,0, db_size);
     
-    pthread_mutex_init(&(info->db_mutex), NULL);
+    pthread_rwlock_init(&(info->db_mutex), NULL);
     
     return 0;
 }
@@ -60,10 +60,10 @@ int cou_write( int index, int value)
     if ( index > DB_SIZE)
         index = index % DB_SIZE;
     
-    pthread_mutex_lock( &(db_cou_info.db_mutex));
+    pthread_rwlock_rdlock( &(db_cou_info.db_mutex));
     db_cou_info.db_cou_bitarray[index] = 1;
     db_cou_info.db_cou_primary[index] = value;
-    pthread_mutex_unlock( &(db_cou_info.db_mutex));
+    pthread_rwlock_unlock( &(db_cou_info.db_mutex));
     return 0;
 }
 void ckp_cou( int ckp_order,void *cou_info)
@@ -82,7 +82,7 @@ void ckp_cou( int ckp_order,void *cou_info)
         return;
     }
     db_size = info->db_size;
-    pthread_mutex_lock(&(info->db_mutex));
+    pthread_rwlock_wrlock(&(info->db_mutex));
     
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
     for (i = 0; i < db_size; i ++){
@@ -93,7 +93,7 @@ void ckp_cou( int ckp_order,void *cou_info)
 
         }
     }
-    pthread_mutex_unlock(&(info->db_mutex));
+    pthread_rwlock_unlock(&(info->db_mutex));
     
     fwrite(info->db_cou_shandow,sizeof( int),db_size,ckp_file);
     fflush(ckp_file);
@@ -106,7 +106,7 @@ void db_cou_destroy( void *cou_info)
     
     info = cou_info;
     
-    pthread_mutex_destroy( &(info->db_mutex));
+    pthread_rwlock_destroy( &(info->db_mutex));
     free(info->db_cou_bitarray);
     free(info->db_cou_shandow);
     free(info->db_cou_primary);
@@ -131,11 +131,7 @@ int db_naive_init(void *naive_info,int db_size)
         perror("db_navie_AS_shandow malloc error");
         return -1;
     }
-    if ( 0 != pthread_mutex_init(&(info->naive_db_mutex),NULL))
-    {
-        perror("navie_db_mutex init error");
-        return -1;
-    }
+   
     if ( 0!= pthread_rwlock_init(&(info->write_mutex),NULL))
     {
         perror("write_mutex init error");
@@ -147,7 +143,7 @@ void db_naive_destroy( void *naive_info)
 {
     db_naive_infomation *info;
     info = naive_info;
-    pthread_mutex_destroy(& (info->naive_db_mutex));
+
     pthread_rwlock_destroy(& (info->write_mutex));
     free( info->db_naive_AS);
     free( info->db_naive_AS_shandow);
@@ -224,10 +220,10 @@ void *database_thread(void *arg)
     ckp_num = 50;
     while( 1)
     {
-        printf("ckp id:%d\n",ckp_id);
-//        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
+        
+
         checkpoint(ckp_id%10, info);
-//        clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
+
         ckp_id ++;
         if (ckp_id >= ckp_num)
         {
@@ -237,6 +233,7 @@ void *database_thread(void *arg)
             break;
         }
     }
+    printf("\ncheckpoint finish:%d\n",ckp_id - 1);
     pthread_barrier_wait(brr_exit);
     
 DB_EXIT:
@@ -263,14 +260,14 @@ void ckp_naive( int ckp_order, void *naive_info)
     }
     db_size = info->db_size;
 
-    pthread_mutex_lock(& (info->naive_db_mutex));
+    pthread_rwlock_wrlock(& (info->write_mutex));
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
     for ( i = 0; i < db_size; i ++){
         memcpy(&(info->db_naive_AS_shandow[i]),
                 &(info->db_naive_AS[i]),sizeof(int));
     }
    
-    pthread_mutex_unlock(&(info->naive_db_mutex));
+    pthread_rwlock_unlock(&(info->write_mutex));
     
     fwrite(info->db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
     fflush(ckp_file);
@@ -280,26 +277,20 @@ void ckp_naive( int ckp_order, void *naive_info)
 int naive_read( int index)
 {
     int result;
-    if ( index >= DB_SIZE)
+    if ( index >= DB_SIZE){
         index = index % DB_SIZE;
-    
-    pthread_rwlock_rdlock(&(db_naive_info.write_mutex));
+    }
     result =  db_naive_info.db_naive_AS[index];
-    pthread_rwlock_unlock(&(db_naive_info.write_mutex));
-    
     return result;
 }
 int naive_write( int index,int value)
 {
-    if ( index >= DB_SIZE)
-    {
+    if ( index >= DB_SIZE){
         index = index % DB_SIZE;
     }
-    pthread_mutex_lock(&(db_naive_info.naive_db_mutex));
-    pthread_rwlock_wrlock(&(db_naive_info.write_mutex));
+    pthread_rwlock_rdlock(&(db_naive_info.write_mutex));
     db_naive_info.db_naive_AS[index] = value;
     pthread_rwlock_unlock(&(db_naive_info.write_mutex));
-    pthread_mutex_unlock(&(db_naive_info.naive_db_mutex));
     return 0;
 }
 void log_time_write( struct timespec *log,int log_size,char *log_name)

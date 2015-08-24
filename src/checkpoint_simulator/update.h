@@ -20,10 +20,11 @@ typedef struct{
     pthread_barrier_t *update_brr_init;
     pthread_barrier_t *brr_exit;
     int pthread_id;
+    int update_frequency;
 
 }update_thread_info;
 void *update_thread(void *arg);
-int random_update_db( int *random_buf,int buf_size,char *log_name);
+int random_update_db( int *random_buf,int buf_size,char *log_name,int uf);
 
 #ifdef	__cplusplus
 }

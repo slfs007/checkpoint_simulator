@@ -29,7 +29,7 @@ for i in range(0,len(db_log_list),1):
     else:
         db_log_y_list.append(db_log_list[i] - db_log_list[i - 1])
 
-print len(db_log_x_list),len(db_log_y_list)
+
 plt.plot( range(0,len(db_log_y_list),1),db_log_y_list)
 plt.ylabel(plot_name)
 plt.show()

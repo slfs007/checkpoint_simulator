@@ -27,7 +27,6 @@ typedef struct{
     int db_size;
     int *db_naive_AS;
     int *db_naive_AS_shandow;
-    pthread_mutex_t naive_db_mutex;
     pthread_rwlock_t write_mutex;
 
 }db_naive_infomation;
@@ -37,7 +36,7 @@ typedef struct{
     int *db_cou_primary;
     int *db_cou_shandow;
     unsigned char *db_cou_bitarray;
-    pthread_mutex_t db_mutex;
+    pthread_rwlock_t db_mutex;
 
 }db_cou_infomation;
 /*basic*/

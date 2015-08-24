@@ -5,7 +5,8 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
                         const int db_size,const int thread_num,
                         int *map_buf,const int map_size,
-                        pthread_barrier_t *brr_exit);
+                        pthread_barrier_t *brr_exit,
+                        int update_frequency);
 int main( int argc, char *argv[])
 {
     int i;
@@ -15,21 +16,23 @@ int main( int argc, char *argv[])
     int *map_buf;
     char *rf_path;
     int rdf_fd;
+    int update_frequency;
     pthread_t *update_thread_array;
     pthread_t db_thread_id;
     pthread_barrier_t brr_exit;
     
-    if ( argc != 5){
+    if ( argc != 6){
         perror("usage:./ckp_cimulator [update thread number] [database size] "
                 "[algorithm type:0-navie 1-copy on update 2-zigzag 3-pingpong] "
-                "[random file name]");
+                "[random file name] [update frequency (k/sec)]");
     }
     
     update_thread_num = atoi( argv[1]);
     db_size = atoi( argv[2]);
     alg_type = atoi( argv[3]);
     rf_path = argv[4];
-   
+    update_frequency = atoi(argv[5]);
+    update_frequency *= 1000;
     //init the brr_exit
     pthread_barrier_init(&brr_exit,NULL, update_thread_num + 1);
     //start db_thread
@@ -54,7 +57,8 @@ int main( int argc, char *argv[])
         return -2;
     }
     if (0 != update_thread_start(&update_thread_array,alg_type,db_size,
-                                update_thread_num,map_buf,1024,&brr_exit)){
+                                update_thread_num,map_buf,1024,&brr_exit,
+                                update_frequency)){
         return -3;
     }
      //wait for quit
@@ -79,6 +83,7 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_bar
     db_info.db_size = db_size;
     db_info.ckp_db_barrier = &db_brr_init;
     db_info.brr_db_exit = brr_exit;
+   
     if ( 0 != pthread_create( db_thread_id, NULL, database_thread, &db_info))
     {
         perror("database thread create error!");
@@ -93,7 +98,8 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_bar
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
                         const int db_size,const int thread_num,
                         int *map_buf,const int map_size,
-                        pthread_barrier_t *brr_exit)
+                        pthread_barrier_t *brr_exit,
+                        int update_frequency)
 {
 
     int i;
@@ -107,7 +113,7 @@ int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
     pthread_barrier_init( &update_brr_init, NULL,thread_num  +1);
     update_info.update_brr_init = &update_brr_init;
     update_info.brr_exit = brr_exit;
-    
+    update_info.update_frequency = update_frequency;
     printf("thread num:%d\n",thread_num);
     if (NULL == ((*update_thread_id_array) 
                     = (pthread_t *)malloc(sizeof(pthread_t) * thread_num)))

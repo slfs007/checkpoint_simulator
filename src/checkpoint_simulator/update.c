@@ -17,6 +17,7 @@ void *update_thread(void *arg)
     pthread_barrier_t *update_brr_init = (( update_thread_info *)arg)->update_brr_init;
     pthread_barrier_t *brr_exit = (( update_thread_info *)arg)->brr_exit;
     int pthread_id = (( update_thread_info *)arg)->pthread_id;
+    int update_frequency = (( update_thread_info *)arg)->update_frequency;
     char log_name[128];
     
     DB_SIZE = db_size;
@@ -50,45 +51,83 @@ void *update_thread(void *arg)
     }
 
     pthread_barrier_wait( update_brr_init);
-    random_update_db( random_buffer,random_buffer_size,log_name);
+    random_update_db( random_buffer,random_buffer_size,log_name,update_frequency);
     
     pthread_barrier_wait( brr_exit);
     
     pthread_exit(NULL);
 }
-int random_update_db( int *random_buf,int buf_size,char *log_name)
+int execute_update(int *random_buf,int buf_size,int times,FILE *log)
 {
     int i;
     int buf;
-    struct timespec log_thread_time_start;
-    struct timespec log_thread_time_end;
+    struct timespec time_start;
+    struct timespec time_end;
     
-    FILE *log_thread;
-    
-    log_thread = fopen(log_name,"w+");
-    i = 0;
-    while(1)
-    {
-        
+    for (i = 0; i < times; i ++){
+        clock_gettime(CLOCK_MONOTONIC, &time_start);
         pthread_rwlock_rdlock(&DB_STATE_rw_lock);
         if ( 1 != DB_STATE ){
             printf("update thread prepare to exit\n");
-            break;
+            return -1;
         }
         buf = random_buf[i%buf_size];
-        
-        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
+        //clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
         db_write(buf%DB_SIZE,buf);
-        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
-        
-     //   fprintf(log_thread,"%ld,%ld\n",log_thread_time_start.tv_sec,log_thread_time_start.tv_nsec);
-     //   fprintf(log_thread,"%ld,%ld\n",log_thread_time_end.tv_sec,log_thread_time_end.tv_nsec);
-        i++;
-   
+        //clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
+        clock_gettime(CLOCK_MONOTONIC, &time_end);
+        fprintf(log,"%ld %ld %ld %ld\n",time_start.tv_sec,time_start.tv_nsec,
+                time_end.tv_sec,time_end.tv_nsec);
     }
-    
+    return 0;
+}
+int random_update_db( int *random_buf,int buf_size,char *log_name,int uf)
+{
+    int i;
+    int tick;
+    FILE *log_thread;
+    FILE *log_uf;
+    char log_uf_name[128];
+    struct timespec time_now;
+    struct timespec time_start;
+    long int time_now_us;
+    long int time_start_us;
+    long int time_tick_us;
+    long int time_begin_us;
+    long int time_diff;
+    log_thread = fopen(log_name,"w+");
+    sprintf(log_uf_name,"%s_uf",log_name);
+    log_uf = fopen(log_uf_name,"w+");
+    tick = 0;
+    clock_gettime(CLOCK_MONOTONIC, &time_start);
+    time_begin_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+    while(1)
+    {
+        clock_gettime(CLOCK_MONOTONIC, &time_start);
+        time_start_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+       
+        for (i = 0; i < 1000; i ++){
+            if (-1 == execute_update(random_buf,buf_size,uf/1000,log_thread)){
+                clock_gettime(CLOCK_MONOTONIC, &time_now);
+                goto EXIT;
+            }
+            clock_gettime(CLOCK_MONOTONIC, &time_now);
+            time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
+            time_tick_us = time_start_us + i * 1000;
+            if ( time_now_us < time_tick_us){
+                usleep(time_tick_us - time_now_us);
+            }
+        }
+        tick ++;
+    }
+   //clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2])); 
+EXIT:
     fclose(log_thread);
-    printf("%d\n",i);
+    tick = tick * uf + i * (uf/1000);
+    time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
+    time_diff = (time_now_us - time_begin_us)/1000000;
+    
+    printf("set uf:%d,real uf:%ld\n",uf,time_diff == 0 ? 0: tick/time_diff);
     return 0;
 }
