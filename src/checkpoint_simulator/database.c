@@ -68,7 +68,7 @@ int cou_write( int index, int value)
 }
 void ckp_cou( int ckp_order,void *cou_info)
 {
-    FILE *ckp_file;
+    int ckp_fd;
     char ckp_name[32];
     int i;
     int db_size;
@@ -76,7 +76,7 @@ void ckp_cou( int ckp_order,void *cou_info)
     
     info = cou_info;
     sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
-    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
@@ -95,9 +95,9 @@ void ckp_cou( int ckp_order,void *cou_info)
     }
     pthread_rwlock_unlock(&(info->db_mutex));
     
-    fwrite(info->db_cou_shandow,sizeof( int),db_size,ckp_file);
-    fflush(ckp_file);
-    fclose(ckp_file);
+    write(ckp_fd,info->db_cou_shandow,sizeof( int)*db_size);
+    fsync(ckp_fd);
+    close(ckp_fd);
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
 }
 void db_cou_destroy( void *cou_info)
@@ -223,7 +223,7 @@ void *database_thread(void *arg)
         
 
         checkpoint(ckp_id%10, info);
-
+        
         ckp_id ++;
         if (ckp_id >= ckp_num)
         {
@@ -245,7 +245,7 @@ DB_EXIT:
 }
 void ckp_naive( int ckp_order, void *naive_info)
 {
-    FILE *ckp_file;
+    int ckp_fd;
     char ckp_name[32];
     db_naive_infomation *info;
     int i;
@@ -253,7 +253,7 @@ void ckp_naive( int ckp_order, void *naive_info)
     
     info = naive_info;
     sprintf(ckp_name,"./ckp_backup/naive_%d",ckp_order);
-    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
@@ -269,9 +269,9 @@ void ckp_naive( int ckp_order, void *naive_info)
    
     pthread_rwlock_unlock(&(info->write_mutex));
     
-    fwrite(info->db_naive_AS_shandow,sizeof( int),DB_SIZE,ckp_file);
-    fflush(ckp_file);
-    fclose(ckp_file);
+    write(ckp_fd,info->db_naive_AS_shandow,sizeof( int) * db_size);
+    fsync(ckp_fd);
+    close(ckp_fd);
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
 }
 int naive_read( int index)
@@ -371,7 +371,7 @@ int zigzag_write( int index, int value)
 
 void db_zigzag_ckp( int ckp_order,void *zigzag_info)
 {
-    FILE *ckp_file;
+    int ckp_fd;
     char ckp_name[32];
     int i;
     int db_size;
@@ -379,7 +379,7 @@ void db_zigzag_ckp( int ckp_order,void *zigzag_info)
     
     info = zigzag_info;
     sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
-    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
@@ -396,13 +396,13 @@ void db_zigzag_ckp( int ckp_order,void *zigzag_info)
     //write to disk
     for (i = 0;i < db_size; i ++){
         if (0 == info->db_zigzag_mw[i]){
-            fwrite(&(info->db_zigzag_as1[i]),sizeof( int),1,ckp_file);
+            write(ckp_fd,&(info->db_zigzag_as1[i]),sizeof( int));
         }else{
-            fwrite(&(info->db_zigzag_as0[i]),sizeof( int),1,ckp_file);
+            write(ckp_fd,&(info->db_zigzag_as0[i]),sizeof( int));
         }
     }
-    fflush(ckp_file);
-    fclose(ckp_file); 
+    fsync(ckp_fd);
+    close(ckp_fd); 
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
 }
 void db_zigzag_destroy( void *zigzag_info)
@@ -488,7 +488,7 @@ int pingpong_write( int index, int value)
 }
 void db_pingpong_ckp( int ckp_order,void *pp_info)
 {
-    FILE *ckp_file;
+    int ckp_fd;
     char ckp_name[32];
     int i;
     int db_size;
@@ -496,7 +496,7 @@ void db_pingpong_ckp( int ckp_order,void *pp_info)
     
     info = pp_info;
     sprintf(ckp_name,"./ckp_backup/pp_%d",ckp_order);
-    if ( NULL == ( ckp_file = fopen(ckp_name,"w+")))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
@@ -527,9 +527,9 @@ void db_pingpong_ckp( int ckp_order,void *pp_info)
             }
         }
     }
-    fwrite(info->db_pp_as_previous,sizeof( int),db_size,ckp_file);
-    fflush(ckp_file);
-    fclose(ckp_file); 
+    write(ckp_fd,info->db_pp_as_previous,sizeof( int) * db_size);
+    fsync(ckp_fd);
+    close(ckp_fd); 
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));   
     
 }
