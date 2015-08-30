@@ -76,7 +76,7 @@ void ckp_cou( int ckp_order,void *cou_info)
     
     info = cou_info;
     sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
-    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
@@ -221,8 +221,8 @@ void *database_thread(void *arg)
     while( 1)
     {
         
-
-        checkpoint(ckp_id%10, info);
+        //printf("%d.",ckp_id);
+        checkpoint(ckp_id%1, info);
         
         ckp_id ++;
         if (ckp_id >= ckp_num)
@@ -372,21 +372,21 @@ int zigzag_write( int index, int value)
 void db_zigzag_ckp( int ckp_order,void *zigzag_info)
 {
     int ckp_fd;
-    char ckp_name[32];
+    char ckp_name[128];
     int i;
     int db_size;
     db_zigzag_infomation *info;
     
     info = zigzag_info;
     sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
-    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
     }
     db_size = info->db_size;
-
     pthread_rwlock_wrlock(&(info->write_mutex));
+    
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
     //prepare for checkpoint
     for (i = 0; i < db_size; i ++){

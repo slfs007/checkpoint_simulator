@@ -72,12 +72,12 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
             return -1;
         }
         buf = random_buf[i%buf_size];
-        //clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
+//        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
         db_write(buf%DB_SIZE,buf);
-        //clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
+//        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
         clock_gettime(CLOCK_MONOTONIC, &time_end);
-        fprintf(log,"%ld %ld %ld %ld\n",time_start.tv_sec,time_start.tv_nsec,
+        fprintf(log,"%ld,%ld\n%ld,%ld\n",time_start.tv_sec,time_start.tv_nsec,
                 time_end.tv_sec,time_end.tv_nsec);
     }
     return 0;
@@ -87,8 +87,7 @@ int random_update_db( int *random_buf,int buf_size,char *log_name,int uf)
     int i;
     int tick;
     FILE *log_thread;
-    FILE *log_uf;
-    char log_uf_name[128];
+ 
     struct timespec time_now;
     struct timespec time_start;
     long int time_now_us;
@@ -97,8 +96,7 @@ int random_update_db( int *random_buf,int buf_size,char *log_name,int uf)
     long int time_begin_us;
     long int time_diff;
     log_thread = fopen(log_name,"w+");
-    sprintf(log_uf_name,"%s_uf",log_name);
-    log_uf = fopen(log_uf_name,"w+");
+   
     tick = 0;
     clock_gettime(CLOCK_MONOTONIC, &time_start);
     time_begin_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;

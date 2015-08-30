@@ -13,8 +13,10 @@ num2 = int(num2str)
 db_log_list = []
 db_log_x_list = []
 db_log_y_list = []
-
-while line:
+i = 0
+num = 1000000
+while i < num:
+    i = i + 1
     db_log_list.append(num1 * 1000000000 + num2)
     line = db_log.readline()
     if line:
@@ -22,7 +24,7 @@ while line:
         num1 = int(num1str)
         num2 = int(num2str)
 base = db_log_list[0]
-for i in range(0,len(db_log_list),1):
+for i in range(0,num,1):
     db_log_list[i] = db_log_list[i] - base
     if 0 == i%2:
         db_log_x_list.append(db_log_list[i])
