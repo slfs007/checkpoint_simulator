@@ -33,7 +33,6 @@ void generate_random_file(int unit_num, FILE *file)
     int rand_num;
     
     srand(time(NULL));
-    //test pull request
     for ( i = 0; i < unit_num;i++)
     {
         rand_num = rand();
