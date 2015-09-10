@@ -42,7 +42,7 @@ void *update_thread(void *arg)
         case PINGPONG_ALG:
             db_write = pingpong_write;
             db_read = pingpong_read;
-            snprintf(log_name,sizeof(log_name),"./log/pp_update_log_%d",pthread_id);
+            snprintf(log_name,sizeof(log_name),"./log/pingpong_update_log_%d",pthread_id);
             
             break;
         default:

@@ -1,38 +1,22 @@
-DB_SIZE=10485760
-UPDATE_FREQUENCY=100
-THREAD_NUM=1
-echo "NAIVE:"
-echo "------------------------------------"
-./bin/ckp_simulator $THREAD_NUM $DB_SIZE 0 ./rfg.txt $UPDATE_FREQUENCY
-cd plot_practice
-python ./plot_main.py ../log/naive_ckp_log NAIVE & 1>/dev/null 2>/dev/null
-python ./update_log_plot.py ../log/naive_update_log_0 NAIVE_UPDATE_$UPDATE_FREQUENCY & 1>/dev/null 2>/dev/null 
-cd ../
-echo "------------------------------------"
-
-echo "COPY ON UPDATE"
-echo "------------------------------------"
-./bin/ckp_simulator $THREAD_NUM $DB_SIZE 1 ./rfg.txt $UPDATE_FREQUENCY
-cd plot_practice
-python ./plot_main.py ../log/cou_ckp_log COPY_ON_UPDATE & 1>/dev/null 2>/dev/null
-python ./update_log_plot.py ../log/cou_update_log_0 COU_UPDATE_$UPDATE_FREQUENCY & 1>/dev/null 2>/dev/null 
-cd ../
-echo "------------------------------------"
-
-echo "WAIT-FREE PINGPONG"
-echo "------------------------------------"
-./bin/ckp_simulator $THREAD_NUM $DB_SIZE 3 ./rfg.txt $UPDATE_FREQUENCY
-cd plot_practice
-python ./plot_main.py ../log/pingpong_ckp_log PINGPONG & 1>/dev/null 2>/dev/null
-python ./update_log_plot.py ../log/pp_update_log_0 PINGPONG_UPDATE_$UPDATE_FREQUENCY & 1>/dev/null 2>/dev/null 
-cd ../
-echo "------------------------------------"
-
-echo "WAIT-FREE ZIGZAG"
-echo "------------------------------------"
-./bin/ckp_simulator $THREAD_NUM $DB_SIZE 2 ./rfg.txt $UPDATE_FREQUENCY
-cd plot_practice
-python ./plot_main.py ../log/zigzag_ckp_log ZIGZAG & 1>/dev/null 2>/dev/null
-python ./update_log_plot.py ../log/zigzag_update_log_0 zigzag_UPDATE_$UPDATE_FREQUENCY & 1>/dev/null 2>/dev/null 
-cd ../
-echo "------------------------------------"
+DB_SIZE='5242880'
+UPDATE_FREQUENCY='100'
+THREAD_NUM='1'
+AVG_DIVISOR='1000'
+ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PIINGPONG")
+LOG_NAME=("naive" "cou" "zigzag" "pingpong")
+AVG_DIVISOR=1000
+for i in 0 1 3 2
+do
+	echo ${ALG_NAME[i]}
+	echo "------------------------------------"
+	ARG_CKP_SIMULATOR=${THREAD_NUM}" "${DB_SIZE}" "$i" ./rfg.txt "${UPDATE_FREQUENCY}
+	ARG_PLOT_MAIN="../log/"${LOG_NAME[i]}"_ckp_log "${ALG_NAME[i]}
+	ARG_PLOT_UPDATE="../log/"${LOG_NAME[i]}"_update_log_0 "${ALG_NAME[i]}"_"${UPDATE_FREQUENCY}" "$AVG_DIVISOR
+	./bin/ckp_simulator $ARG_CKP_SIMULATOR
+	
+	cd plot_practice
+	python ./plot_main.py $ARG_PLOT_MAIN &
+	python ./update_log_plot.py $ARG_PLOT_UPDATE &
+	cd ../
+	echo "------------------------------------"
+done

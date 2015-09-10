@@ -24,7 +24,7 @@ extern "C" {
 #include<pthread.h>
 #include"database.h"
 #include"update.h"
-#include"db_zigzag.h"
+
 #include<sys/mman.h>
 #include<fcntl.h>
 #include<unistd.h>

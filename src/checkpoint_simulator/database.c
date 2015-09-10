@@ -1,6 +1,6 @@
 #include"database.h"
 #include"include.h"
-#include "db_zigzag.h" 
+
 
 db_naive_infomation db_naive_info;
 db_cou_infomation db_cou_info;
