@@ -45,6 +45,11 @@ void *update_thread(void *arg)
             snprintf(log_name,sizeof(log_name),"./log/pingpong_update_log_%d",pthread_id);
             
             break;
+        case MK_ALG:
+            db_write = mk_write;
+            db_read = mk_read;
+            snprintf(log_name,sizeof(log_name),"./log/mk_update_log_%d",pthread_id);
+            break;
         default:
             perror("alg_type error");
             break;
@@ -61,6 +66,7 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
 {
     int i;
     int buf;
+
     struct timespec time_start;
     struct timespec time_end;
     
@@ -72,9 +78,17 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
             return -1;
         }
         buf = random_buf[i%buf_size];
-//        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_start);
-        db_write(buf%DB_SIZE,buf);
-//        clock_gettime(CLOCK_MONOTONIC, &log_thread_time_end);
+        
+        db_write(buf%DB_SIZE,0x31);
+#ifdef COHERENCE_CHECK
+        int rbuf;
+        
+        rbuf = db_read(buf%DB_SIZE);
+        if ( rbuf != 0x31)
+        {
+            printf("ERROR:WRITE FAIL!!!");
+        }
+#endif
         pthread_rwlock_unlock(&DB_STATE_rw_lock);
         clock_gettime(CLOCK_MONOTONIC, &time_end);
         fprintf(log,"%ld,%ld\n%ld,%ld\n",time_start.tv_sec,time_start.tv_nsec,

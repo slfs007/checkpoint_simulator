@@ -17,6 +17,7 @@ extern "C" {
 #define COPY_ON_UPDATE_ALG 1
 #define ZIGZAG_ALG  2
 #define PINGPONG_ALG 3
+#define MK_ALG  4
 typedef struct{
     int db_size;
     int alg_type;
@@ -90,6 +91,20 @@ int pingpong_write( int index, int value);
 void db_pingpong_ckp( int ckp_order,void *pp_info);
 void db_pingpong_destroy( void *pp_info);
 
+typedef struct{
+    int db_size;
+    int *db_mk_as1;
+    int *db_mk_as2;
+    unsigned char *db_mk_ba;
+    pthread_rwlock_t db_rwlock;
+    int current;
+    int lock;
+}db_mk_infomation;
+int db_mk_init(void *mk_info,int db_size);
+int mk_read( int index);
+int mk_write( int index, int value);
+void db_mk_ckp( int ckp_order,void *mk_info);
+void db_mk_destroy( void *mk_info);
 #ifdef	__cplusplus
 }
 #endif

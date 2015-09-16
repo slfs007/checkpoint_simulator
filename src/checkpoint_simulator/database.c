@@ -6,7 +6,7 @@ db_naive_infomation db_naive_info;
 db_cou_infomation db_cou_info;
 db_zigzag_infomation db_zigzag_info;
 db_pingpong_infomation db_pingpong_info;
-
+db_mk_infomation db_mk_info;
 static int DB_SIZE;
 
 struct timespec ckp_time_log[2000];
@@ -197,6 +197,13 @@ void *database_thread(void *arg)
             info = &db_pingpong_info;
             snprintf(db_log_name,sizeof(db_log_name),"./log/pingpong_ckp_log");
             break;
+        case MK_ALG:
+            db_init = db_mk_init;
+            checkpoint = db_mk_ckp;
+            db_destroy = db_mk_destroy;
+            info = &db_mk_info;
+            snprintf(db_log_name,sizeof(db_log_name), "./log/mk_ckp_log");
+            break;
         default:
             printf("alg_type error!");
             goto DB_EXIT;
@@ -222,7 +229,7 @@ void *database_thread(void *arg)
     {
         
         //printf("%d.",ckp_id);
-        checkpoint(ckp_id%1, info);
+        checkpoint(ckp_id%2, info);
         
         ckp_id ++;
         if (ckp_id >= ckp_num)
@@ -378,15 +385,15 @@ void db_zigzag_ckp( int ckp_order,void *zigzag_info)
     db_zigzag_infomation *info;
     
     info = zigzag_info;
-    sprintf(ckp_name,"./ckp_backup/cou_%d",ckp_order);
+    sprintf(ckp_name,"./ckp_backup/zz_%d",ckp_order);
     if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;
     }
     db_size = info->db_size;
-    pthread_rwlock_wrlock(&(info->write_mutex));
     
+    pthread_rwlock_wrlock(&(info->write_mutex));
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
     //prepare for checkpoint
     for (i = 0; i < db_size; i ++){
@@ -401,6 +408,7 @@ void db_zigzag_ckp( int ckp_order,void *zigzag_info)
             write(ckp_fd,&(info->db_zigzag_as0[i]),sizeof( int));
         }
     }
+    
     fsync(ckp_fd);
     close(ckp_fd); 
     clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));
@@ -545,4 +553,147 @@ void db_pingpong_destroy( void *pp_info)
     free(info->db_pp_even_ba);
     free(info->db_pp_odd_ba);
     pthread_rwlock_destroy(&(info->write_mutex));
+}
+int db_mk_init(void *mk_info,int db_size)
+{
+    db_mk_infomation *info = mk_info;
+    
+    info->db_size = db_size;
+    
+    if ( NULL == (info->db_mk_as1 = malloc(sizeof(int) * db_size))){
+        perror("db_mk_as1 malloc error");
+        return -1;
+    }
+    memset ( info->db_mk_as1,'S',sizeof(int) * db_size);
+    
+    if ( NULL == (info->db_mk_as2 = malloc(sizeof(int) * db_size))){
+        perror("db_mk_as2 malloc error");
+        return -1;
+    }
+    memset ( info->db_mk_as2,'S',sizeof(int) * db_size);
+    
+    if ( NULL == (info->db_mk_ba = malloc(sizeof(int) * db_size))){
+        perror("db_mk_ba malloc error");
+        return -1;
+    }
+    memset ( info->db_mk_ba,0, db_size);
+    
+    pthread_rwlock_init(&(info->db_rwlock),NULL);
+    info->current = 1;
+    info->lock = 0;
+    return 0;
+    
+}
+int mk_read( int index)
+{
+    if (index > db_mk_info.db_size)
+        index = index % db_mk_info.db_size;
+    if (1 == db_mk_info.current){
+        return db_mk_info.db_mk_as1[index];
+    }else if(2 == db_mk_info.current){
+        return db_mk_info.db_mk_as2[index];
+    }else{
+        printf("ERROR:MK_READ!\n");
+    }
+    return -1;
+}
+int mk_write( int index, int value)
+{
+    if (index > db_mk_info.db_size)
+        index = index % db_mk_info.db_size;
+    
+    pthread_rwlock_rdlock(&(db_mk_info.db_rwlock));
+    if ( 0 == db_mk_info.lock){
+        
+        db_mk_info.db_mk_as1[index] = value;
+        db_mk_info.db_mk_as2[index] = value;
+        db_mk_info.db_mk_ba[index] = 0;
+        pthread_rwlock_unlock(&(db_mk_info.db_rwlock));    
+        return 0;
+    }
+    //lock
+    if ( 1 == db_mk_info.current){
+        
+        db_mk_info.db_mk_as1[index] = value;
+        db_mk_info.db_mk_ba[index] = 1;
+    }else if (2 == db_mk_info.current){
+        
+        db_mk_info.db_mk_as2[index] = value;
+        db_mk_info.db_mk_ba[index] = 2;
+    }else{
+        
+        printf("ERROR:MK_WRITE\n");
+    }
+    pthread_rwlock_unlock(&(db_mk_info.db_rwlock));
+    return 0;
+}
+void db_mk_ckp( int ckp_order,void *mk_info)
+{
+    int ckp_fd;
+    char ckp_name[32];
+    int i;
+    int db_size;
+    db_mk_infomation *info;
+    
+    info = mk_info;
+    sprintf(ckp_name,"./ckp_backup/mk_%d",ckp_order);
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
+    {
+        perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
+        return;
+    }
+    db_size = info->db_size;
+
+    pthread_rwlock_wrlock(&(info->db_rwlock));
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2]));
+    //prepare for checkpoint
+    info->current = (1 == (info->current)) ? 2 : 1;
+    info->lock = 1;
+    pthread_rwlock_unlock(&(info->db_rwlock));
+    //write to disk
+    if ( 1 == info->current)
+    {
+        for (i = 0; i < db_size; i ++){
+            if ( 0 == info->db_mk_ba[i]){
+                continue;
+            }else if ( 1 == info->db_mk_ba[i]){
+                continue;
+            }else if ( 2 == info->db_mk_ba[i]){
+                info->db_mk_as1[i] = info->db_mk_as2[i];
+                info->db_mk_ba[i] = 0;
+            }else{
+                printf("***ERROR:db_mk_ba :%d!\n",info->db_mk_ba[i]);
+                break;
+            }
+        }
+        write(ckp_fd,info->db_mk_as2,sizeof( int) * db_size);
+    }else if ( 2 == info->current){
+        for (i = 0; i < db_size; i ++){
+            if ( 0 == info->db_mk_ba[i]){
+                continue;
+            }else if ( 1 == info->db_mk_ba[i]){
+                info->db_mk_as2[i] = info->db_mk_as1[i];
+                info->db_mk_ba[i] = 0;
+            }else if ( 2 == info->db_mk_ba[i]){
+                continue;
+            }else{
+                printf("***ERROR:db_mk_ba :%d!\n",info->db_mk_ba[i]);
+                break;
+            }
+        }
+        write(ckp_fd,info->db_mk_as1,sizeof( int) * db_size);
+    }else{
+        printf("ERROR:MK_CKP!\n");
+    }
+    fsync(ckp_fd);
+    close(ckp_fd); 
+    clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2 + 1]));   
+}
+void db_mk_destroy( void *mk_info)
+{
+    db_mk_infomation *info = mk_info;
+    free(info->db_mk_as1);
+    free(info->db_mk_as2);
+    free(info->db_mk_ba);
+    pthread_rwlock_destroy(&( info->db_rwlock));
 }

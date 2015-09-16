@@ -2,10 +2,10 @@ DB_SIZE='5242880'
 UPDATE_FREQUENCY='100'
 THREAD_NUM='1'
 AVG_DIVISOR='1000'
-ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PIINGPONG")
-LOG_NAME=("naive" "cou" "zigzag" "pingpong")
+ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PIINGPONG" "MK")
+LOG_NAME=("naive" "cou" "zigzag" "pingpong" "mk")
 AVG_DIVISOR=1000
-for i in 0 1 3 2
+for i in 4 0 1 3 2
 do
 	echo ${ALG_NAME[i]}
 	echo "------------------------------------"
