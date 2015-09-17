@@ -1,0 +1,4 @@
+DB_SIZE=25600
+UNIT_SIZE=8192
+ALG_TYPE=4
+./bin/ckp_simulator 1 $DB_SIZE $ALG_TYPE ./rfg.txt 100 $UNIT_SIZE

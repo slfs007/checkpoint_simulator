@@ -2,8 +2,8 @@
 #include"include.h"
 
 
-int (*db_read)( int index);
-int (*db_write)( int index,int value);
+void* (*db_read)( int index);
+int (*db_write)( int index,void* value);
 static int DB_SIZE;
 extern int DB_STATE;
 extern pthread_rwlock_t DB_STATE_rw_lock;
@@ -79,7 +79,7 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
         }
         buf = random_buf[i%buf_size];
         
-        db_write(buf%DB_SIZE,0x31);
+        db_write(buf%DB_SIZE,random_buf);
 #ifdef COHERENCE_CHECK
         int rbuf;
         

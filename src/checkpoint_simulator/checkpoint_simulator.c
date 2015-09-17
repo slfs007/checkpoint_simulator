@@ -1,7 +1,7 @@
 #include"include.h"
 
 int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,
-        pthread_barrier_t *brr_exit);
+        pthread_barrier_t *brr_exit,int unit_size);
 int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
                         const int db_size,const int thread_num,
                         int *map_buf,const int map_size,
@@ -17,14 +17,16 @@ int main( int argc, char *argv[])
     char *rf_path;
     int rdf_fd;
     int update_frequency;
+    int unit_size;
     pthread_t *update_thread_array;
     pthread_t db_thread_id;
     pthread_barrier_t brr_exit;
     
-    if ( argc != 6){
-        perror("usage:./ckp_cimulator [update thread number] [database size] "
+    if ( argc != 7){
+        perror("usage:./ckp_cimulator [update thread number] [unit num] "
                 "[algorithm type:0-navie 1-copy on update 2-zigzag 3-pingpong] "
-                "[random file name] [update frequency (k/sec)]");
+                "[random file name] [update frequency (k/sec)]"
+                "[unit size]");
     }
     
     update_thread_num = atoi( argv[1]);
@@ -32,12 +34,13 @@ int main( int argc, char *argv[])
     alg_type = atoi( argv[3]);
     rf_path = argv[4];
     update_frequency = atoi(argv[5]);
+    unit_size = atoi(argv[6]);
     update_frequency *= 1000;
     //init the brr_exit
     pthread_barrier_init(&brr_exit,NULL, update_thread_num + 1);
     //start db_thread
 
-    if (0 != db_thread_start(&db_thread_id,alg_type,db_size,&brr_exit)){
+    if (0 != db_thread_start(&db_thread_id,alg_type,db_size,&brr_exit,unit_size)){
         perror("db thread start fail!");
         exit(1);
     }
@@ -73,7 +76,7 @@ int main( int argc, char *argv[])
     pthread_barrier_destroy(&brr_exit);
     exit(1);
 }
-int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_barrier_t *brr_exit)
+int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_barrier_t *brr_exit,int unit_size)
 {
     db_thread_info db_info;
     pthread_barrier_t db_brr_init;
@@ -83,7 +86,7 @@ int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_bar
     db_info.db_size = db_size;
     db_info.ckp_db_barrier = &db_brr_init;
     db_info.brr_db_exit = brr_exit;
-   
+    db_info.unit_size = unit_size;
     if ( 0 != pthread_create( db_thread_id, NULL, database_thread, &db_info))
     {
         perror("database thread create error!");

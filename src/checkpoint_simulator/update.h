@@ -11,7 +11,7 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-#define COHERENCE_CHECK
+//#define COHERENCE_CHECK
 #include<pthread.h>
 typedef struct{
     int db_size;
