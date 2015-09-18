@@ -24,18 +24,26 @@ while line :
         yList.append(time - xList[-1])
     i = i + 1
     line = db_log.readline()
+
+lastTime = xList[0]/100000000
+sumSec = 0
 i = 0
-print len( yList)
-avgYList = []
-sum = 0
-while i < len(yList):
-    sum = sum + yList[i]
+xSecList = []
+ySecList = []
+baseTime = lastTime
+for eachTime in xList:
+
+    eachTime = eachTime / 100000000
+    if eachTime == lastTime:
+        sumSec = sumSec + yList[i]
+    else:
+        xSecList.append(lastTime - baseTime)
+        ySecList.append(sumSec)
+        sumSec = 0
+        lastTime = eachTime
     i = i + 1
-    if 0 == i % avg_divisor:
-        avgYList.append(sum / avg_divisor)
-        sum = 0
-print len( avgYList)
-plt.plot( range(0,len(avgYList),1),avgYList)
+print len(xSecList),len(ySecList)
+plt.plot( xSecList,ySecList)
 plt.ylabel(plot_name)
 plt.show()
 db_log.close()
