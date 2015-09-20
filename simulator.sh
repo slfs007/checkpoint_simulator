@@ -6,6 +6,8 @@ ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PIINGPONG" "MK")
 LOG_NAME=("naive" "cou" "zigzag" "pingpong" "mk")
 AVG_DIVISOR=1000
 UNIT_SIZE=4096
+mkdir log
+mkdir ckp_bakcup
 for i in 0 1 2 3 4  
 do
 	echo ${ALG_NAME[i]}
