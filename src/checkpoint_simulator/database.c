@@ -63,7 +63,7 @@ int cou_write( int index, void *value)
     pthread_rwlock_rdlock( &(db_cou_info.db_mutex));
     
     db_cou_info.db_cou_bitarray[index] = 1;
-    memcpy(db_cou_info.db_cou_primary + index * UNIT_SIZE,value,UNIT_SIZE);
+    memcpy(db_cou_info.db_cou_primary + index * UNIT_SIZE + index % UNIT_SIZE,value,4);
     pthread_rwlock_unlock( &(db_cou_info.db_mutex));
     return 0;
 }
@@ -304,7 +304,7 @@ int naive_write( int index,void *value)
         index = index % DB_SIZE;
     }
     pthread_rwlock_rdlock(&(db_naive_info.write_mutex));
-    memcpy(db_naive_info.db_naive_AS + index * UNIT_SIZE,value,UNIT_SIZE);
+    memcpy(db_naive_info.db_naive_AS + index * UNIT_SIZE + index,value,4);
     pthread_rwlock_unlock(&(db_naive_info.write_mutex));
     return 0;
 }
@@ -376,10 +376,10 @@ int zigzag_write( int index, void *value)
     pthread_rwlock_rdlock(&(db_zigzag_info.write_mutex));
     if (0 == db_zigzag_info.db_zigzag_mw[index]){
         //db_zigzag_info.db_zigzag_as0[index] = value;        
-        memcpy(db_zigzag_info.db_zigzag_as0 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_zigzag_info.db_zigzag_as0 + index * UNIT_SIZE + index% UNIT_SIZE,value,4);
     }else{
         //db_zigzag_info.db_zigzag_as1[index] = value;
-        memcpy(db_zigzag_info.db_zigzag_as1 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_zigzag_info.db_zigzag_as1 + index * UNIT_SIZE + index % UNIT_SIZE,value,4);
     }
     db_zigzag_info.db_zigzag_mr[index] = db_zigzag_info.db_zigzag_mw[index];
     pthread_rwlock_unlock(&(db_zigzag_info.write_mutex));
@@ -492,15 +492,15 @@ int pingpong_write( int index, void* value)
         index = index % db_pingpong_info.db_size;
     
     //db_pingpong_info.db_pp_as[index] = value;
-    memcpy(db_pingpong_info.db_pp_as + index * UNIT_SIZE,value,UNIT_SIZE);
+    memcpy(db_pingpong_info.db_pp_as + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
     pthread_rwlock_rdlock(&(db_pingpong_info.write_mutex));
     if (0 == db_pingpong_info.current){
     //    db_pingpong_info.db_pp_as_odd[index] = value;
-        memcpy(db_pingpong_info.db_pp_as_odd + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_pingpong_info.db_pp_as_odd + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         db_pingpong_info.db_pp_odd_ba[index] = 1;
     }else{
     //    db_pingpong_info.db_pp_as_even[index] = value;
-        memcpy(db_pingpong_info.db_pp_as_even + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_pingpong_info.db_pp_as_even + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         db_pingpong_info.db_pp_even_ba[index] = 1;
     }
     pthread_rwlock_unlock(&(db_pingpong_info.write_mutex));
@@ -623,9 +623,9 @@ int mk_write( int index, void* value)
     if ( 0 == db_mk_info.lock){
         
         //db_mk_info.db_mk_as1[index] = value;
-        memcpy(db_mk_info.db_mk_as1 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_mk_info.db_mk_as1 + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         //db_mk_info.db_mk_as2[index] = value;
-        memcpy(db_mk_info.db_mk_as2 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_mk_info.db_mk_as2 + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         
         db_mk_info.db_mk_ba[index] = 0;
         pthread_rwlock_unlock(&(db_mk_info.db_rwlock));    
@@ -635,13 +635,13 @@ int mk_write( int index, void* value)
     if ( 1 == db_mk_info.current){
         
         //db_mk_info.db_mk_as1[index] = value;
-        memcpy(db_mk_info.db_mk_as1 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_mk_info.db_mk_as1 + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         
         db_mk_info.db_mk_ba[index] = 1;
     }else if (2 == db_mk_info.current){
         
         //db_mk_info.db_mk_as2[index] = value;
-        memcpy(db_mk_info.db_mk_as2 + index * UNIT_SIZE,value,UNIT_SIZE);
+        memcpy(db_mk_info.db_mk_as2 + index * UNIT_SIZE + index % UNIT_SIZE,value,UNIT_SIZE);
         
         db_mk_info.db_mk_ba[index] = 2;
     }else{
