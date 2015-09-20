@@ -9,7 +9,7 @@ void *database_thread(void *arg)
     int alg_type = ((db_thread_info *)arg)->alg_type;
     pthread_barrier_t *brr_exit = ((db_thread_info *)arg)->brr_db_exit;
     int unit_size = ((db_thread_info *)arg)->unit_size;
-    int ckp_max;
+
 
     pthread_barrier_t *ckp_db_b;
     
@@ -79,8 +79,8 @@ void *database_thread(void *arg)
     printf("db thread init success!\n");
     pthread_barrier_wait( ckp_db_b);
     
-    DBServer.ckpID = 0;
-    ckp_max = 20;
+
+
     long long timeStart;
     long long timeEnd;
     while( 1)
@@ -93,7 +93,7 @@ void *database_thread(void *arg)
 	usleep(5000000 - (timeEnd - timeStart));		
 	
         DBServer.ckpID ++;
-        if (DBServer.ckpID >= ckp_max)
+        if (DBServer.ckpID >= DBServer.ckpMaxNum)
         {
             pthread_rwlock_wrlock(&(DBServer.dbStateRWLock));
             DBServer.dbState = 0;
@@ -108,7 +108,7 @@ DB_EXIT:
     printf("database thread exit\n");
     pthread_rwlock_destroy(&(DBServer.dbStateRWLock));
     db_destroy(info);
-    log_time_write(DBServer.ckpTimeLog,ckp_max * 2,db_log_name);
+    log_time_write(DBServer.ckpTimeLog,DBServer.ckpMaxNum * 2,db_log_name);
     pthread_exit(NULL);
 }
 void log_time_write( struct timespec *log,int log_size,char *log_name)

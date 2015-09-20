@@ -29,7 +29,7 @@ int main( int argc, char *argv[])
     DBServer.updateFrequency    *= 1000;
     DBServer.ckpID              = 0;
     DBServer.dbState            = 0;
-    
+    DBServer.ckpMaxNum          = 10;
     
     if ( -1 == ( rdf_fd = open(argv[4], O_RDONLY)))
     {
