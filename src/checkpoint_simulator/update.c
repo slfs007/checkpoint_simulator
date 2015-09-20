@@ -4,13 +4,11 @@
 
 void* (*db_read)( int index);
 int (*db_write)( int index,void* value);
-static int DB_SIZE;
-extern int DB_STATE;
-extern pthread_rwlock_t DB_STATE_rw_lock;
+
 extern pthread_barrier_t brr_exit;
 void *update_thread(void *arg)
 {
-    int db_size = (( update_thread_info *)arg) ->db_size ;
+//    int db_size = (( update_thread_info *)arg) ->db_size ;
     int alg_type = (( update_thread_info *)arg) ->alg_type;
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
@@ -20,7 +18,7 @@ void *update_thread(void *arg)
     int update_frequency = (( update_thread_info *)arg)->update_frequency;
     char log_name[128];
     
-    DB_SIZE = db_size;
+    
     
     switch(alg_type){
         case NAIVE_ALG:
@@ -72,14 +70,14 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
     
     for (i = 0; i < times; i ++){
         clock_gettime(CLOCK_MONOTONIC, &time_start);
-        pthread_rwlock_rdlock(&DB_STATE_rw_lock);
-        if ( 1 != DB_STATE ){
+        pthread_rwlock_rdlock(&(DBServer.dbStateRWLock));
+        if ( 1 != DBServer.dbState ){
             printf("update thread prepare to exit\n");
             return -1;
         }
         buf = random_buf[i%buf_size];
         
-        db_write(buf%DB_SIZE,random_buf);
+        db_write(buf%DBServer.dbSize,random_buf);
 #ifdef COHERENCE_CHECK
         int rbuf;
         
@@ -89,7 +87,7 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
             printf("ERROR:WRITE FAIL!!!");
         }
 #endif
-        pthread_rwlock_unlock(&DB_STATE_rw_lock);
+        pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
         clock_gettime(CLOCK_MONOTONIC, &time_end);
         fprintf(log,"%ld,%ld\n%ld,%ld\n",time_start.tv_sec,time_start.tv_nsec,
                 time_end.tv_sec,time_end.tv_nsec);

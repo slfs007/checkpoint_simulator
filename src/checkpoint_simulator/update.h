@@ -13,6 +13,7 @@ extern "C" {
 #endif
 //#define COHERENCE_CHECK
 #include<pthread.h>
+#include"include.h"
 typedef struct{
     int db_size;
     int alg_type;
@@ -24,6 +25,7 @@ typedef struct{
     int update_frequency;
 
 }update_thread_info;
+extern db_server DBServer;
 void *update_thread(void *arg);
 int random_update_db( int *random_buf,int buf_size,char *log_name,int uf);
 

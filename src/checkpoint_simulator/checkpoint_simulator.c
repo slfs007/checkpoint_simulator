@@ -1,23 +1,15 @@
 #include"include.h"
 
-int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,
-        pthread_barrier_t *brr_exit,int unit_size);
-int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
-                        const int db_size,const int thread_num,
-                        int *map_buf,const int map_size,
+
+db_server DBServer;
+int db_thread_start(pthread_t *db_thread_id,pthread_barrier_t *brr_exit,db_server *dbs);
+int update_thread_start(pthread_t *update_thread_id_array[],
                         pthread_barrier_t *brr_exit,
-                        int update_frequency);
+                        db_server *dbs);
 int main( int argc, char *argv[])
 {
     int i;
-    int update_thread_num;
-    int db_size;
-    int alg_type;
-    int *map_buf;
-    char *rf_path;
     int rdf_fd;
-    int update_frequency;
-    int unit_size;
     pthread_t *update_thread_array;
     pthread_t db_thread_id;
     pthread_barrier_t brr_exit;
@@ -29,101 +21,91 @@ int main( int argc, char *argv[])
                 "[unit size]");
     }
     
-    update_thread_num = atoi( argv[1]);
-    db_size = atoi( argv[2]);
-    alg_type = atoi( argv[3]);
-    rf_path = argv[4];
-    update_frequency = atoi(argv[5]);
-    unit_size = atoi(argv[6]);
-    update_frequency *= 1000;
-    //init the brr_exit
-    pthread_barrier_init(&brr_exit,NULL, update_thread_num + 1);
-    //start db_thread
-
-    if (0 != db_thread_start(&db_thread_id,alg_type,db_size,&brr_exit,unit_size)){
-        perror("db thread start fail!");
-        exit(1);
-    }
-   
-    if ( -1 == ( rdf_fd = open(rf_path, O_RDONLY)))
+    DBServer.updateThrNum       = atoi( argv[1]);
+    DBServer.dbSize             = atoi( argv[2]);
+    DBServer.algType            = atoi( argv[3]);
+    DBServer.updateFrequency    = atoi( argv[5]);
+    DBServer.unitSize           = atoi( argv[6]);
+    DBServer.updateFrequency    *= 1000;
+    DBServer.ckpID              = 0;
+    DBServer.dbState            = 0;
+    
+    
+    if ( -1 == ( rdf_fd = open(argv[4], O_RDONLY)))
     {
         perror( "random file open error!\n");
         return -1;
     }
-   
-    map_buf = ( int *)mmap(NULL,2048 * sizeof(int),
-                                    PROT_READ,MAP_LOCKED|MAP_SHARED,rdf_fd,0);
-
-    if ( MAP_FAILED == map_buf )
-    {
-        perror("mmap failed!");
-        return -2;
+    DBServer.rfBuf = ( int *)malloc(DBServer.dbSize * sizeof(int));
+    DBServer.rfBufSize = DBServer.dbSize;
+    read(rdf_fd,DBServer.rfBuf,DBServer.rfBufSize * sizeof(int));
+    close(rdf_fd);
+    
+    pthread_barrier_init(&brr_exit,NULL, DBServer.updateThrNum + 1);
+    if (0 != db_thread_start(&db_thread_id,&brr_exit,&DBServer)){
+        perror("db thread start fail!");
+        exit(1);
     }
-    if (0 != update_thread_start(&update_thread_array,alg_type,db_size,
-                                update_thread_num,map_buf,1024,&brr_exit,
-                                update_frequency)){
+    if (0 != update_thread_start(&update_thread_array,&brr_exit,
+                                &DBServer)){
         return -3;
     }
      //wait for quit
     pthread_join( db_thread_id,NULL);
-    for ( i = 0;i < update_thread_num ; i ++){
-        
+    for ( i = 0;i < DBServer.updateThrNum ; i ++){
         pthread_join(update_thread_array[i],NULL);
         printf("update thread %d exit!\n",i);
     }
     free(update_thread_array);
-    close(rdf_fd);
     pthread_barrier_destroy(&brr_exit);
     exit(1);
 }
-int db_thread_start(pthread_t *db_thread_id,int alg_type,int db_size,pthread_barrier_t *brr_exit,int unit_size)
+int db_thread_start(pthread_t *db_thread_id,pthread_barrier_t *brr_exit,db_server *dbs)
 {
-    db_thread_info db_info;
-    pthread_barrier_t db_brr_init;
+    db_thread_info dbInfo;
+    pthread_barrier_t brrDBInit;
     
-    pthread_barrier_init( &db_brr_init, NULL,2);
-    db_info.alg_type = alg_type;
-    db_info.db_size = db_size;
-    db_info.ckp_db_barrier = &db_brr_init;
-    db_info.brr_db_exit = brr_exit;
-    db_info.unit_size = unit_size;
-    if ( 0 != pthread_create( db_thread_id, NULL, database_thread, &db_info))
-    {
+    pthread_barrier_init( &brrDBInit, NULL,2);
+    dbInfo.alg_type = dbs->algType;
+    dbInfo.db_size = dbs->dbSize;
+    dbInfo.ckp_db_barrier = &brrDBInit;
+    dbInfo.brr_db_exit = brr_exit;
+    dbInfo.unit_size = dbs->unitSize;
+    
+    if ( 0 != pthread_create( db_thread_id, NULL, database_thread, &dbInfo)){
         perror("database thread create error!");
         return -1;
     }
 
-    pthread_barrier_wait( &db_brr_init);
-    pthread_barrier_destroy( &db_brr_init);
+    pthread_barrier_wait( &brrDBInit);
+    pthread_barrier_destroy( &brrDBInit);
 
     return 0;
 }
-int update_thread_start(pthread_t *update_thread_id_array[],const int alg_type,
-                        const int db_size,const int thread_num,
-                        int *map_buf,const int map_size,
+int update_thread_start(pthread_t *update_thread_id_array[],
                         pthread_barrier_t *brr_exit,
-                        int update_frequency)
+                        db_server *dbs)
 {
 
     int i;
     update_thread_info update_info;
     pthread_barrier_t update_brr_init;
     
-    update_info.alg_type = alg_type;
-    update_info.db_size = db_size;
-    update_info.random_buffer = map_buf;
-    update_info.random_buffer_size = map_size;
-    pthread_barrier_init( &update_brr_init, NULL,thread_num  +1);
+    update_info.alg_type = dbs->algType;
+    update_info.db_size = dbs->dbSize;
+    update_info.random_buffer = dbs->rfBuf;
+    update_info.random_buffer_size = dbs->rfBufSize;
+    pthread_barrier_init( &update_brr_init, NULL,dbs->updateThrNum  +1);
     update_info.update_brr_init = &update_brr_init;
     update_info.brr_exit = brr_exit;
-    update_info.update_frequency = update_frequency;
-    printf("thread num:%d\n",thread_num);
+    update_info.update_frequency = dbs->updateFrequency;
+    
     if (NULL == ((*update_thread_id_array) 
-                    = (pthread_t *)malloc(sizeof(pthread_t) * thread_num)))
+                    = (pthread_t *)malloc(sizeof(pthread_t) * dbs->updateThrNum)))
     {
         perror("update thread array malloc error");
     }
-    for ( i = 0; i < thread_num ; i++)
+    for ( i = 0; i < dbs->updateThrNum ; i++)
     {
         update_info.pthread_id = i;
         if ( 0 != pthread_create( &((*update_thread_id_array)[i]), 

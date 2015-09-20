@@ -8,13 +8,9 @@
 #ifndef INCLUDE_H
 #define	INCLUDE_H
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
-#include"database.h"
+
 #include<fcntl.h>
 #include<stdio.h>
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -22,17 +18,39 @@ extern "C" {
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
-#include"database.h"
-#include"update.h"
-
 #include<sys/mman.h>
 #include<fcntl.h>
 #include<unistd.h>
+#include"naive.h"
+#include"cou.h"
+#include"zigzag.h"
+#include"pingpong.h"
+#include"mk.h"
 
+typedef struct {
+    int algType;
+    int dbSize;
+    int unitSize;
+    struct timespec ckpTimeLog[2000];
+    int ckpMaxNum;
+    int ckpID;
+    int dbState;
+    int updateThrNum;
+    int updateFrequency;
+    int *rfBuf;
+    int rfBufSize;
+    pthread_rwlock_t dbStateRWLock;
+    db_naive_infomation naiveInfo;
+    db_cou_infomation couInfo;
+    db_zigzag_infomation zigzagInfo;
+    db_pingpong_infomation pingpongInfo;
+    db_mk_infomation mkInfo;
 
-#ifdef	__cplusplus
-}
-#endif
+}db_server;
+
+#include"database.h"
+#include"update.h"
+
 
 #endif	/* INCLUDE_H */
 
