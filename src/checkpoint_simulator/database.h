@@ -15,11 +15,11 @@
 #define MK_ALG              4
 
 typedef struct {
-        int db_size;
-        int alg_type;
-        int unit_size;
-        pthread_barrier_t *ckp_db_barrier;
-        pthread_barrier_t *brr_db_exit;
+    int dbSize;
+    int algType;
+  
+    pthread_barrier_t *ckpInitBrr;
+    pthread_barrier_t *ckpExitBrr;
 } db_thread_info;
 
 void log_time_write(struct timespec *log, int log_size, char *log_name);

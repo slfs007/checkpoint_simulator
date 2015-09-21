@@ -8,14 +8,15 @@
 #ifndef MK_H
 #define	MK_H
 #include<pthread.h>
+
 typedef struct {
-  int db_size;
-  char *db_mk_as1;
-  char *db_mk_as2;
-  unsigned char *db_mk_ba;
-  pthread_rwlock_t db_rwlock;
-  int current;
-  int lock;
+    int db_size;
+    char *db_mk_as1;
+    char *db_mk_as2;
+    unsigned char *db_mk_ba;
+    pthread_rwlock_t db_rwlock;
+    int current;
+    int lock;
 } db_mk_infomation;
 
 #include"include.h"

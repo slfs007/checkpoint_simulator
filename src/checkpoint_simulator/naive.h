@@ -13,7 +13,6 @@ typedef struct {
     char *db_naive_AS;
     char *db_naive_AS_shandow;
     pthread_rwlock_t write_mutex;
-
 } db_naive_infomation;
 #include"include.h"
 

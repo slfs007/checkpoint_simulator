@@ -46,7 +46,7 @@ typedef struct {
     db_pingpong_infomation pingpongInfo;
     db_mk_infomation mkInfo;
 
-}db_server;
+} db_server;
 
 #include"database.h"
 #include"update.h"

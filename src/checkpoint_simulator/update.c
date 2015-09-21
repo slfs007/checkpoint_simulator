@@ -8,7 +8,7 @@ int (*db_write)( int index,void* value);
 extern pthread_barrier_t brr_exit;
 void *update_thread(void *arg)
 {
-//    int db_size = (( update_thread_info *)arg) ->db_size ;
+
     int alg_type = (( update_thread_info *)arg) ->alg_type;
     int *random_buffer = (( update_thread_info *)arg) ->random_buffer;
     int random_buffer_size = (( update_thread_info *)arg) ->random_buffer_size;
@@ -65,79 +65,75 @@ int execute_update(int *random_buf,int buf_size,int times,FILE *log)
     int i;
     int buf;
 
-    struct timespec time_start;
-    struct timespec time_end;
+    struct timespec timeStart;
+    struct timespec timeEnd;
     
     for (i = 0; i < times; i ++){
-        clock_gettime(CLOCK_MONOTONIC, &time_start);
-        pthread_rwlock_rdlock(&(DBServer.dbStateRWLock));
+        clock_gettime(CLOCK_MONOTONIC, &timeStart);
+        
+	pthread_rwlock_rdlock(&(DBServer.dbStateRWLock));
         if ( 1 != DBServer.dbState ){
             printf("update thread prepare to exit\n");
             return -1;
         }
         buf = random_buf[i%buf_size];
-        
         db_write(buf%DBServer.dbSize,random_buf);
-#ifdef COHERENCE_CHECK
-        int rbuf;
-        
-        rbuf = db_read(buf%DB_SIZE);
-        if ( rbuf != 0x31)
-        {
-            printf("ERROR:WRITE FAIL!!!");
-        }
-#endif
         pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
-        clock_gettime(CLOCK_MONOTONIC, &time_end);
-        fprintf(log,"%ld,%ld\n%ld,%ld\n",time_start.tv_sec,time_start.tv_nsec,
-                time_end.tv_sec,time_end.tv_nsec);
+        
+	clock_gettime(CLOCK_MONOTONIC, &timeEnd);
+        fprintf(log,"%ld,%ld\n%ld,%ld\n",timeStart.tv_sec,timeStart.tv_nsec,
+                timeEnd.tv_sec,timeEnd.tv_nsec);
     }
     return 0;
 }
 int random_update_db( int *random_buf,int buf_size,char *log_name,int uf)
 {
-    int i;
+    long long i;
     int tick;
-    FILE *log_thread;
- 
-    struct timespec time_now;
-    struct timespec time_start;
-    long int time_now_us;
-    long int time_start_us;
-    long int time_tick_us;
-    long int time_begin_us;
-    long int time_diff;
-    log_thread = fopen(log_name,"w+");
+    FILE *logFile;
+
+    long int timeNowUs;
+    long int timeStartUs;
+    long int timeTickUs;
+    long int timeBeginUs;
+    long int timeDiffUs;
+    
+    logFile = fopen(log_name,"w+");
    
     tick = 0;
-    clock_gettime(CLOCK_MONOTONIC, &time_start);
-    time_begin_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+ //   clock_gettime(CLOCK_MONOTONIC, &time_start);
+ //   time_begin_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+    timeBeginUs = get_utime();
     while(1)
     {
-        clock_gettime(CLOCK_MONOTONIC, &time_start);
-        time_start_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
-       
+  //      clock_gettime(CLOCK_MONOTONIC, &time_start);
+  //      time_start_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+	    timeStartUs = get_utime();
         for (i = 0; i < 1000; i ++){
-            if (-1 == execute_update(random_buf,buf_size,uf/1000,log_thread)){
-                clock_gettime(CLOCK_MONOTONIC, &time_now);
-                goto EXIT;
+            if (-1 == execute_update(random_buf,buf_size,uf/1000,logFile)){
+                //clock_gettime(CLOCK_MONOTONIC, &time_now);
+		    timeNowUs = get_utime();
+		    goto EXIT;
             }
-            clock_gettime(CLOCK_MONOTONIC, &time_now);
-            time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
-            time_tick_us = time_start_us + i * 1000;
-            if ( time_now_us < time_tick_us){
-                usleep(time_tick_us - time_now_us);
+            //clock_gettime(CLOCK_MONOTONIC, &time_now);
+            //time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
+	    
+            timeTickUs = timeStartUs + i * 1000;
+            timeNowUs = get_utime();
+	    if ( timeNowUs < timeTickUs){
+                usleep(timeTickUs - timeNowUs);
             }
         }
         tick ++;
     }
    //clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2])); 
 EXIT:
-    fclose(log_thread);
+    fclose(logFile);
     tick = tick * uf + i * (uf/1000);
-    time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
-    time_diff = (time_now_us - time_begin_us)/1000000;
+    //time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
     
-    printf("set uf:%d,real uf:%ld\n",uf,time_diff == 0 ? 0: tick/time_diff);
+    timeDiffUs = (timeNowUs - timeBeginUs)/1000000;
+    
+    printf("set uf:%d,real uf:%ld\n",uf,timeDiffUs == 0 ? 0: tick/timeDiffUs);
     return 0;
 }
