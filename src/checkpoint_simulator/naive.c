@@ -53,7 +53,7 @@ int naive_write( int index,void *value)
         index = index % DBServer.dbSize;
     }
     pthread_rwlock_rdlock(&((DBServer.naiveInfo).write_mutex));
-    memcpy((DBServer.naiveInfo).db_naive_AS + index * DBServer.unitSize + index,value,4);
+    memcpy((DBServer.naiveInfo).db_naive_AS + index * DBServer.unitSize + index%DBServer.unitSize,value,4);
     pthread_rwlock_unlock(&((DBServer.naiveInfo).write_mutex));
     return 0;
 }
@@ -67,7 +67,7 @@ void ckp_naive( int ckp_order, void *naive_info)
     
     info = naive_info;
     sprintf(ckp_name,"./ckp_backup/naive_%d",ckp_order);
-    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT | O_SYNC,666)))
+    if ( -1 == ( ckp_fd = open(ckp_name,O_WRONLY | O_CREAT,666)))
     {
         perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
         return;

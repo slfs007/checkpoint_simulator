@@ -10,7 +10,6 @@ void *database_thread(void *arg)
     pthread_barrier_t *brr_exit = ((db_thread_info *)arg)->brr_db_exit;
     int unit_size = ((db_thread_info *)arg)->unit_size;
 
-
     pthread_barrier_t *ckp_db_b;
     
     char db_log_name[128];
@@ -30,35 +29,35 @@ void *database_thread(void *arg)
             checkpoint = ckp_naive;
             db_destroy = db_naive_destroy;
             info = &(DBServer.naiveInfo);
-            snprintf(db_log_name,sizeof(db_log_name),"./log/naive_ckp_log");
+            snprintf(db_log_name,sizeof(db_log_name),"./log/naive_%d_ckp_log",db_size);
             break;
         case COPY_ON_UPDATE_ALG:
             db_init = db_cou_init;
             checkpoint = ckp_cou;
             db_destroy = db_cou_destroy;
             info = &(DBServer.couInfo);
-            snprintf(db_log_name,sizeof(db_log_name),"./log/cou_ckp_log");
+            snprintf(db_log_name,sizeof(db_log_name),"./log/cou_%d_ckp_log",db_size);
             break;
         case ZIGZAG_ALG:
             db_init = db_zigzag_init;
             checkpoint = db_zigzag_ckp;
             db_destroy = db_zigzag_destroy;
             info = &(DBServer.zigzagInfo);
-            snprintf(db_log_name,sizeof(db_log_name),"./log/zigzag_ckp_log");
+            snprintf(db_log_name,sizeof(db_log_name),"./log/zigzag_%d_ckp_log",db_size);
             break;
         case PINGPONG_ALG:
             db_init = db_pingpong_init;
             checkpoint = db_pingpong_ckp;
             db_destroy = db_pingpong_destroy;
             info = &(DBServer.pingpongInfo);
-            snprintf(db_log_name,sizeof(db_log_name),"./log/pingpong_ckp_log");
+            snprintf(db_log_name,sizeof(db_log_name),"./log/pingpong_%d_ckp_log",db_size);
             break;
         case MK_ALG:
             db_init = db_mk_init;
             checkpoint = db_mk_ckp;
             db_destroy = db_mk_destroy;
             info = &(DBServer.mkInfo);
-            snprintf(db_log_name,sizeof(db_log_name), "./log/mk_ckp_log");
+            snprintf(db_log_name,sizeof(db_log_name), "./log/mk_%d_ckp_log",db_size);
             break;
         default:
             printf("alg_type error!");

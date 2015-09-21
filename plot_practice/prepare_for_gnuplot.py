@@ -24,27 +24,30 @@ while line :
         yList.append(time - xList[-1])
     i = i + 1
     line = db_log.readline()
-stepTime = 100000000
+stepTime = 10000000
 lastTime = xList[0]/stepTime
 sumSec = 0
 i = 0
 xSecList = []
 ySecList = []
 baseTime = lastTime
+avgDivisor = 0
 for eachTime in xList:
 
     eachTime = eachTime / stepTime
     if eachTime == lastTime:
         sumSec = sumSec + yList[i]
+	avgDivisor = avgDivisor + 1
     else:
         xSecList.append(lastTime - baseTime)
-        ySecList.append(sumSec)
+        ySecList.append(sumSec/ avgDivisor)
         sumSec = 0
+	avgDivisor = 0
         lastTime = eachTime
     i = i + 1
 print len(xSecList),len(ySecList)
 
-forGnuPlotFile = open("./for_gnuplot.dat","w")
+forGnuPlotFile = open("./" +plot_name + "for_gnuplot.dat","w")
 
 for i in range(0,len(ySecList),1):
     line = str(i) + '\t' + str(ySecList[i]) + '\n'

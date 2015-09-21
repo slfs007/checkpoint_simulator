@@ -1,5 +1,4 @@
 __author__ = 'mk'
-import matplotlib.pyplot as plt
 import sys
 
 log_file_path = sys.argv[1]
@@ -31,11 +30,11 @@ for i in range(0,len(db_log_list),1):
 listSum = sum(db_log_y_list)
 avgTime = listSum / len(db_log_y_list)
 
-print plot_name," CHECKPOINT TIME:",avgTime,"ns"
-
-plt.plot( range(0,len(db_log_y_list),1),db_log_y_list)
-plt.ylabel(plot_name)
-plt.show()
+print plot_name," CHECKPOINT TIME:",avgTime/1000000,"ms"
+logFile = open("./" + plot_name + "_ckp_time.dat","w");
+line = str(avgTime)
+logFile.write(line);
 db_log.close()
+logFile.close()
 
 

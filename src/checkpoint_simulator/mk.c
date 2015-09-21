@@ -26,7 +26,6 @@ int db_mk_init(void *mk_info,int db_size)
     
     pthread_rwlock_init(&(info->db_rwlock),NULL);
     info->current = 1;
-    info->lock = 0;
     return 0;
     
 }
