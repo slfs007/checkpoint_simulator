@@ -6,7 +6,7 @@ int db_thread_start(pthread_t *db_thread_id, pthread_barrier_t *brr_exit, db_ser
 int update_thread_start(pthread_t *update_thread_id_array[],
 	pthread_barrier_t *brr_exit,
 	db_server *dbs);
-
+void write_overhead_log(db_server *s,const char *filePath);
 int main(int argc, char *argv[])
 {
 	int i;
@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	pthread_t *update_thread_array;
 	pthread_t db_thread_id;
 	pthread_barrier_t brr_exit;
-
+	char logName[128];
 	if (argc != 7) {
 		perror("usage:./ckp_cimulator [update thread number] [unit num] "
 			"[algorithm type:0-navie 1-copy on update 2-zigzag 3-pingpong] "
@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
 	DBServer.ckpID = 0;
 	DBServer.dbState = 0;
 	DBServer.ckpMaxNum = 10;
-
+	DBServer.ckpOverheadLog = malloc( sizeof(long long) * DBServer.ckpMaxNum);
+	
 	if (-1 == (rdf_fd = open(argv[4], O_RDONLY))) {
 		perror("random file open error!\n");
 		return -1;
@@ -58,9 +59,29 @@ int main(int argc, char *argv[])
 	}
 	free(update_thread_array);
 	pthread_barrier_destroy(&brr_exit);
+	sprintf(logName,"./log/overhead/%d_overhead_%dk_%d_%d.log",
+		DBServer.algType,DBServer.updateFrequency,
+		DBServer.dbSize,DBServer.unitSize);
+	write_overhead_log( &DBServer, logName);
 	exit(1);
 }
-
+void add_overhead_log(db_server *s,long long ns)
+{
+	s->ckpOverheadLog[s->ckpID] = ns;
+}
+void write_overhead_log(db_server *s,const char *filePath)
+{
+	FILE *logFile;
+	int i;
+	logFile = fopen(filePath,"w");
+	
+	for (i = 0; i < s->ckpID;i ++ ){
+		
+		fprintf(logFile,"%lld\n",s->ckpOverheadLog[i]);
+	}
+	fflush( logFile);
+	fclose( logFile);
+}
 int db_thread_start(pthread_t *db_thread_id, pthread_barrier_t *brr_exit, db_server *dbs)
 {
 	db_thread_info dbInfo;

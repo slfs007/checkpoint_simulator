@@ -32,6 +32,7 @@ typedef struct {
     int dbSize;
     int unitSize;
     struct timespec ckpTimeLog[2000];
+    long long *ckpOverheadLog;
     int ckpMaxNum;
     int ckpID;
     int dbState;
@@ -50,7 +51,7 @@ typedef struct {
 
 #include"database.h"
 #include"update.h"
-
+void add_overhead_log(db_server *s,long long ns);
 
 #endif	/* INCLUDE_H */
 
