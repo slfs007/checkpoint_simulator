@@ -1,0 +1,14 @@
+set xlabel "Data Size[MB],logscale"
+set ylabel "Overhead per Checkpoint(ns),logscale"
+set title "Scaleup:2.44% updates/sec"
+set term pdfcairo 
+set output "./experimental_result/OverheadPerCheckpoint.pdf"
+f(x) = log(x)
+g(y) = log(y)
+plot 	"./data/0_overhead.dat" u (f($1)):(f($2)) w l lc 1 title "navie", \
+ 	"./data/1_overhead.dat" u (f($1)):(f($2)) w l lc 2 title "cou" ,\
+ 	"./data/2_overhead.dat" u (f($1)):(f($2)) w l lc 3 title "zigzag" ,\
+ 	"./data/3_overhead.dat" u (f($1)):(f($2)) w l lc 4 title "pingpong" ,\
+ 	"./data/4_overhead.dat" u (f($1)):(f($2)) w l lc 5 title "MK" 
+	
+set output 
