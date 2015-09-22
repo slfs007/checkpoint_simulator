@@ -5,8 +5,8 @@
 void* (*db_read)(int index);
 int (*db_write)(int index, void* value);
 
-extern pthread_barrier_t brr_exit;
 
+extern db_server DBServer;
 void *update_thread(void *arg)
 {
 
@@ -68,7 +68,7 @@ int execute_update(int *random_buf, int buf_size, int times, FILE *log)
 {
 	int i;
 	int buf;
-
+	static unsigned int tick = 0;
 
 	long long timeStartNs;
 	long long timeEndNs;
@@ -79,15 +79,17 @@ int execute_update(int *random_buf, int buf_size, int times, FILE *log)
 		pthread_rwlock_rdlock(&(DBServer.dbStateRWLock));
 		if (1 != DBServer.dbState) {
 			printf("update thread prepare to exit\n");
+			pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
 			return -1;
 		}
-		buf = random_buf[i % buf_size];
-		db_write(buf % DBServer.dbSize, random_buf);
+		buf = random_buf[(i + tick)% DBServer.rfBufSize];
+		db_write(buf, random_buf);
 		pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
 
 		timeEndNs = get_ntime();
-		fprintf(log, "%d,%lld\n",timeStartNs / 1000000,timeEndNs - timeStartNs);
+		fprintf(log, "%lld,%lld\n",timeStartNs / 1000000,timeEndNs - timeStartNs);
 	}
+	tick += times;
 	return 0;
 }
 
@@ -106,22 +108,17 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 	logFile = fopen(log_name, "w+");
 
 	tick = 0;
-	//   clock_gettime(CLOCK_MONOTONIC, &time_start);
-	//   time_begin_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+
 	timeBeginUs = get_utime();
 	while (1) {
-		//      clock_gettime(CLOCK_MONOTONIC, &time_start);
-		//      time_start_us = time_start.tv_sec * 1000000 + time_start.tv_nsec / 1000;
+
 		timeStartUs = get_utime();
 		for (i = 0; i < 1000; i++) {
 			if (-1 == execute_update(random_buf, buf_size, uf / 1000, logFile)) {
-				//clock_gettime(CLOCK_MONOTONIC, &time_now);
+				/
 				timeNowUs = get_utime();
 				goto EXIT;
 			}
-			//clock_gettime(CLOCK_MONOTONIC, &time_now);
-			//time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
-
 			timeTickUs = timeStartUs + i * 1000;
 			timeNowUs = get_utime();
 			if (timeNowUs < timeTickUs) {

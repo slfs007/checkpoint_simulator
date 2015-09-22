@@ -1,0 +1,15 @@
+THREAD_NUM='1'
+ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PINGPONG" "MK")
+UNIT_SIZE=8192
+DB_SIZE_ARRAY=("25600" "51200" "76800" "102400" "128000" "153600" "179200" "204800" "230400" "256000")
+UF_ARRAY=("32" "64" "96" "128" "160" "192" "224" "256" "288" "320")
+UNIT_SIZE=4096
+	
+for i in 0 2
+do
+	for j in 1
+	do
+	ARG_CKP_SIMULATOR=${THREAD_NUM}" "${DB_SIZE_ARRAY[j]}" "$i" ./rfg.txt "${UF_ARRAY[j]}" "$UNIT_SIZE
+	./bin/ckp_simulator $ARG_CKP_SIMULATOR
+	done
+done

@@ -71,7 +71,7 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 	int i;
 	int db_size;
 	db_zigzag_infomation *info;
-
+	int tick = 0;
 	info = zigzag_info;
 	sprintf(ckp_name, "./ckp_backup/zz_%d", ckp_order);
 	if (-1 == (ckpfd = open(ckp_name,O_WRONLY | O_CREAT))) {
@@ -92,12 +92,13 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 		if (0 == info->db_zigzag_mw[i]) {
 			write(ckpfd,info->db_zigzag_as1 + i * DBServer.unitSize,
 				DBServer.unitSize);
+			tick++;
 		} else {
 			write(ckpfd,info->db_zigzag_as0 + i * DBServer.unitSize, 
 				DBServer.unitSize);
 		}
 	}
-
+	printf("tick:%d\n",tick);
 	fsync(ckpfd);
 	close(ckpfd);
 	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));

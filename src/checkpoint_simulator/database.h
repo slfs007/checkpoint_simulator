@@ -22,7 +22,7 @@ typedef struct {
     pthread_barrier_t *ckpExitBrr;
 } db_thread_info;
 
-void log_time_write(struct timespec *log, int log_size, char *log_name);
+void log_time_write(db_server *s);
 void *database_thread(void *arg);
 long long get_ntime(void);
 long long get_utime(void);

@@ -25,6 +25,7 @@ int main ( int argc, char *argv[])
     printf("unit num:%d\n",unit_num);
     
     generate_random_file(  unit_num,rfg_file);
+    fclose(rfg_file);
     exit(0);
 }
 void generate_random_file(int unit_num, FILE *file)

@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	DBServer.rfBuf = (int *) malloc(DBServer.dbSize * sizeof(int));
-	DBServer.rfBufSize = DBServer.dbSize;
+	DBServer.rfBufSize = 25600;
 	read(rdf_fd, DBServer.rfBuf, DBServer.rfBufSize * sizeof(int));
 	close(rdf_fd);
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	sprintf(logName,"./log/overhead/%d_overhead_%dk_%d_%d.log",
 		DBServer.algType,DBServer.updateFrequency,
 		DBServer.dbSize,DBServer.unitSize);
-	write_overhead_log( &DBServer, logName);
+//	write_overhead_log( &DBServer, logName);
 	exit(1);
 }
 void add_overhead_log(db_server *s,long long ns)

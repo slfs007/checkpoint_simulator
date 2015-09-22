@@ -18,8 +18,8 @@ void *database_thread(void *arg)
 
 
 
-	printf("database thread start，dbSize:%d alg_type:%d,unit_size:%d\n", 
-		dbSize, algType,DBServer.unitSize);
+	printf("database thread start，dbSize:%d alg_type:%d,unit_size:%d,set uf:%d\n", 
+		dbSize, algType,DBServer.unitSize,DBServer.updateFrequency);
 	switch (algType) {
 	case NAIVE_ALG:
 		db_init = db_naive_init;
@@ -80,15 +80,16 @@ void *database_thread(void *arg)
 	long long timeStart;
 	long long timeEnd;
 	while (1) {
-		timeStart = get_ntime();
-		printf("time:%d\n", (int) (timeStart / 1000000000));
+		timeStart = get_utime();
+		printf("time:%d\n", (int) (timeStart / 1000000));
 		checkpoint(DBServer.ckpID % 2, info);
-		timeEnd = get_ntime();
-		add_overhead_log(&DBServer,timeEnd - timeStart);
-		usleep(5000000 - (timeEnd - timeStart)/1000);
+		timeEnd = get_utime();
+	
+		usleep(5000000 - (timeEnd - timeStart));
 
 		DBServer.ckpID++;
 		if (DBServer.ckpID >= DBServer.ckpMaxNum) {
+			
 			pthread_rwlock_wrlock(&(DBServer.dbStateRWLock));
 			DBServer.dbState = 0;
 			pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
@@ -102,22 +103,35 @@ DB_EXIT:
 	printf("database thread exit\n");
 	pthread_rwlock_destroy(&(DBServer.dbStateRWLock));
 	db_destroy(info);
-	log_time_write(DBServer.ckpTimeLog, DBServer.ckpMaxNum * 2, dbLogPath);
+	log_time_write(&DBServer);
 	pthread_exit(NULL);
 }
 
-void log_time_write(struct timespec *log, int log_size, char *log_name)
+void log_time_write(db_server *s)
 {
 	FILE *log_time;
 	int i;
-
-	if (NULL == (log_time = fopen(log_name, "w"))) {
+	char logName[256];
+	long long timeStart;
+	long long timeEnd;
+	
+	long long timeSum = 0;
+	sprintf(logName,"./log/overhead/%d_overhead_%dk_%d_%d.log",
+		DBServer.algType,DBServer.updateFrequency,
+		DBServer.dbSize,DBServer.unitSize);
+	if (NULL == (log_time = fopen(logName, "w"))) {
 		perror("log_time fopen error,checkout if the floder is exist");
 		return;
 	}
-	for (i = 0; i < log_size; i++) {
-		fprintf(log_time, "%ld,%ld\n", log[i].tv_sec, log[i].tv_nsec);
+	for (i = 1; i < s->ckpMaxNum; i++) {
+		
+		timeStart = s->ckpTimeLog[i * 2].tv_sec * 1000000000 + 
+			s->ckpTimeLog[i*2].tv_nsec;
+		timeEnd = s->ckpTimeLog[i * 2 + 1].tv_sec * 1000000000 + 
+			s->ckpTimeLog[i*2 + 1].tv_nsec;
+		timeSum += timeEnd - timeStart;
 	}
+	fprintf(log_time,"%lld\n",timeSum/ (s->ckpMaxNum - 1));
 	fflush(log_time);
 	fclose(log_time);
 }
