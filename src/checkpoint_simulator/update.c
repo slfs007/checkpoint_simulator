@@ -9,7 +9,6 @@ int (*db_write)(int index, void* value);
 extern db_server DBServer;
 void *update_thread(void *arg)
 {
-
 	int alg_type = ((update_thread_info *) arg) ->alg_type;
 	int *random_buffer = ((update_thread_info *) arg) ->random_buffer;
 	int random_buffer_size = ((update_thread_info *) arg) ->random_buffer_size;
@@ -18,8 +17,6 @@ void *update_thread(void *arg)
 	int pthread_id = ((update_thread_info *) arg)->pthread_id;
 	int update_frequency = ((update_thread_info *) arg)->update_frequency;
 	char log_name[128];
-
-
 
 	switch (alg_type) {
 	case NAIVE_ALG:
@@ -64,11 +61,11 @@ void *update_thread(void *arg)
 	pthread_exit(NULL);
 }
 
-int execute_update(int *random_buf, int buf_size, int times, FILE *log)
+int execute_update(int *random_buf, int buf_size, int times, FILE *log,int tick)
 {
 	int i;
 	int buf;
-	static unsigned int tick = 0;
+
 
 	long long timeStartNs;
 	long long timeEndNs;
@@ -82,14 +79,14 @@ int execute_update(int *random_buf, int buf_size, int times, FILE *log)
 			pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
 			return -1;
 		}
-		buf = random_buf[(i + tick)% DBServer.rfBufSize];
+		buf = random_buf[i + tick];
 		db_write(buf, random_buf);
 		pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
 
 		timeEndNs = get_ntime();
 		fprintf(log, "%lld,%lld\n",timeStartNs / 1000000,timeEndNs - timeStartNs);
 	}
-	tick += times;
+
 	return 0;
 }
 
@@ -98,12 +95,12 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 	long long i;
 	int tick;
 	FILE *logFile;
-
+	
 	long int timeNowUs;
 	long int timeStartUs;
 	long int timeTickUs;
 	long int timeBeginUs;
-	long int timeDiffUs;
+	long int timeDiff;
 
 	logFile = fopen(log_name, "w+");
 
@@ -114,17 +111,19 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 
 		timeStartUs = get_utime();
 		for (i = 0; i < 1000; i++) {
-			if (-1 == execute_update(random_buf, buf_size, uf / 1000, logFile)) {
-				/
+			if (-1 == execute_update(random_buf, buf_size, uf / 1000, logFile,i)) {
+				
 				timeNowUs = get_utime();
 				goto EXIT;
 			}
+			//next 1ms tick
 			timeTickUs = timeStartUs + i * 1000;
 			timeNowUs = get_utime();
 			if (timeNowUs < timeTickUs) {
 				usleep(timeTickUs - timeNowUs);
 			}
 		}
+		
 		tick++;
 	}
 	//clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2])); 
@@ -133,8 +132,8 @@ EXIT:
 	tick = tick * uf + i * (uf / 1000);
 	//time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
 
-	timeDiffUs = (timeNowUs - timeBeginUs) / 1000000;
+	timeDiff = (timeNowUs - timeBeginUs) / 1000000;
 
-	printf("set uf:%d,real uf:%ld\n", uf, timeDiffUs == 0 ? 0 : tick / timeDiffUs);
+	printf("set uf:%d,real uf:%ld\n", uf, timeDiff == 0 ? 0 : tick / timeDiff);
 	return 0;
 }

@@ -7,10 +7,11 @@ int update_thread_start(pthread_t *update_thread_id_array[],
 	pthread_barrier_t *brr_exit,
 	db_server *dbs);
 void write_overhead_log(db_server *s,const char *filePath);
+int randomfile_init(FILE *rf,int *rbuf,int rbufSize);
 int main(int argc, char *argv[])
 {
 	int i;
-	int rdf_fd;
+	FILE *rf;
 	pthread_t *update_thread_array;
 	pthread_t db_thread_id;
 	pthread_barrier_t brr_exit;
@@ -33,14 +34,17 @@ int main(int argc, char *argv[])
 	DBServer.ckpMaxNum = 10;
 	DBServer.ckpOverheadLog = malloc( sizeof(long long) * DBServer.ckpMaxNum);
 	
-	if (-1 == (rdf_fd = open(argv[4], O_RDONLY))) {
+	if (NULL == (rf = fopen(argv[4], "r"))) {
 		perror("random file open error!\n");
 		return -1;
 	}
 	DBServer.rfBuf = (int *) malloc(DBServer.dbSize * sizeof(int));
-	DBServer.rfBufSize = 25600;
-	read(rdf_fd, DBServer.rfBuf, DBServer.rfBufSize * sizeof(int));
-	close(rdf_fd);
+	DBServer.rfBufSize = DBServer.dbSize;
+	if (DBServer.dbSize != randomfile_init(rf,DBServer.rfBuf,DBServer.rfBufSize)){
+		perror("random file init error\n");
+		return -1;
+	}
+	fclose(rf);
 
 	pthread_barrier_init(&brr_exit, NULL, DBServer.updateThrNum + 1);
 	if (0 != db_thread_start(&db_thread_id, &brr_exit, &DBServer)) {
@@ -64,6 +68,16 @@ int main(int argc, char *argv[])
 		DBServer.dbSize,DBServer.unitSize);
 //	write_overhead_log( &DBServer, logName);
 	exit(1);
+}
+int randomfile_init(FILE *rf,int *rbuf,int rbufSize)
+{
+	int i;
+	
+	for (i = 0; i < rbufSize; i ++){
+		fscanf(rf,"%d\n",rbuf + i);
+	}
+	return i;
+	
 }
 void add_overhead_log(db_server *s,long long ns)
 {
