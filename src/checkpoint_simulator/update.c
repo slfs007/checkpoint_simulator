@@ -50,7 +50,7 @@ void *update_thread(void *arg)
 		perror("alg_type error");
 		break;
 	}
-	sprintf(log_name, "./log/latency/%d_latency_%dk_%d_%d_%d", DBServer.algType,
+	sprintf(log_name, "./log/latency/%d_latency_%dk_%d_%d_%d.log", DBServer.algType,
 		DBServer.updateFrequency / 1000, DBServer.dbSize, DBServer.unitSize,
 		pthread_id);
 	pthread_barrier_wait(update_brr_init);

@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	sprintf(logName,"./log/overhead/%d_overhead_%dk_%d_%d.log",
 		DBServer.algType,DBServer.updateFrequency,
 		DBServer.dbSize,DBServer.unitSize);
-//	write_overhead_log( &DBServer, logName);
+
 	exit(1);
 }
 int randomfile_init(FILE *rf,int *rbuf,int rbufSize)
@@ -76,6 +76,7 @@ int randomfile_init(FILE *rf,int *rbuf,int rbufSize)
 	for (i = 0; i < rbufSize; i ++){
 		fscanf(rf,"%d\n",rbuf + i);
 	}
+	
 	return i;
 	
 }
