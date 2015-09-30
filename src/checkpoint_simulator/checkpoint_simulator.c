@@ -38,8 +38,9 @@ int main(int argc, char *argv[])
 		perror("random file open error!\n");
 		return -1;
 	}
-	DBServer.rfBuf = (int *) malloc(DBServer.dbSize * sizeof(int));
-	DBServer.rfBufSize = DBServer.dbSize;
+	
+	DBServer.rfBufSize = DBServer.updateFrequency * 10;
+	DBServer.rfBuf = (int *) malloc(DBServer.rfBufSize * sizeof(int));
 	if (DBServer.dbSize != randomfile_init(rf,DBServer.rfBuf,DBServer.rfBufSize)){
 		perror("random file init error\n");
 		return -1;
