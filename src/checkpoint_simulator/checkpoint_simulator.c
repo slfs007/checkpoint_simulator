@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	
 	DBServer.rfBufSize = DBServer.updateFrequency * 10;
 	DBServer.rfBuf = (int *) malloc(DBServer.rfBufSize * sizeof(int));
-	if (DBServer.dbSize != randomfile_init(rf,DBServer.rfBuf,DBServer.rfBufSize)){
+	if (DBServer.rfBufSize != randomfile_init(rf,DBServer.rfBuf,DBServer.rfBufSize)){
 		perror("random file init error\n");
 		return -1;
 	}
