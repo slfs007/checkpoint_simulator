@@ -65,7 +65,7 @@ void ckp_naive(int ckp_order, void *naive_info)
 	int ckp_fd;
 	char ckp_name[32];
 	db_naive_infomation *info;
-	int i;
+
 	int db_size;
 
 	info = naive_info;
@@ -79,10 +79,9 @@ void ckp_naive(int ckp_order, void *naive_info)
 	pthread_rwlock_wrlock(& (info->write_mutex));
 	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
 	
-	for (i = 0; i < db_size; i++) {
-		memcpy(info->db_naive_AS_shandow + i * DBServer.unitSize,
-			info->db_naive_AS + i * DBServer.unitSize, DBServer.unitSize);
-	}
+	memcpy(info->db_naive_AS_shandow,
+		info->db_naive_AS , DBServer.unitSize * DBServer.unitSize);
+	
 	pthread_rwlock_unlock(&(info->write_mutex));
 	write(ckp_fd, info->db_naive_AS_shandow, DBServer.unitSize * db_size);
 	fsync(ckp_fd);
