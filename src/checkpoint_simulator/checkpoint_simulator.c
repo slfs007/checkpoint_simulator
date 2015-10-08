@@ -2,12 +2,7 @@
 
 
 db_server DBServer;
-int db_thread_start(pthread_t *db_thread_id, pthread_barrier_t *brr_exit, db_server *dbs);
-int update_thread_start(pthread_t *update_thread_id_array[],
-	pthread_barrier_t *brr_exit,
-	db_server *dbs);
-void write_overhead_log(db_server *s,const char *filePath);
-int randomfile_init(FILE *rf,int *rbuf,int rbufSize);
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -33,6 +28,7 @@ int main(int argc, char *argv[])
 	DBServer.dbState = 0;
 	DBServer.ckpMaxNum = 10;
 	DBServer.ckpOverheadLog = malloc( sizeof(long long) * DBServer.ckpMaxNum);
+	DBServer.ckpPrepareLog = malloc(sizeof(long long) * DBServer.ckpMaxNum);
 	
 	if (NULL == (rf = fopen(argv[4], "r"))) {
 		perror("random file open error!\n");
@@ -65,9 +61,9 @@ int main(int argc, char *argv[])
 	free(update_thread_array);
 	pthread_barrier_destroy(&brr_exit);
 	sprintf(logName,"./log/overhead/%d_overhead_%dk_%d_%d.log",
-		DBServer.algType,DBServer.updateFrequency,
+		DBServer.algType,DBServer.updateFrequency/1000,
 		DBServer.dbSize,DBServer.unitSize);
-
+	write_overhead_log(&DBServer,logName);
 	exit(1);
 }
 int randomfile_init(FILE *rf,int *rbuf,int rbufSize)
@@ -85,15 +81,23 @@ void add_overhead_log(db_server *s,long long ns)
 {
 	s->ckpOverheadLog[s->ckpID] = ns;
 }
+void add_prepare_log(db_server *s,long long ns)
+{
+	s->ckpPrepareLog[s->ckpID] = ns;
+}
 void write_overhead_log(db_server *s,const char *filePath)
 {
 	FILE *logFile;
 	int i;
 	logFile = fopen(filePath,"w");
-	
+	fprintf(logFile,"Overhead:\n");
 	for (i = 0; i < s->ckpID;i ++ ){
 		
 		fprintf(logFile,"%lld\n",s->ckpOverheadLog[i]);
+	}
+	fprintf(logFile,"Prepare:\n");
+	for (i = 0; i < s->ckpID; i ++){
+		fprintf(logFile,"%lld\n",s->ckpPrepareLog[i]);
 	}
 	fflush( logFile);
 	fclose( logFile);

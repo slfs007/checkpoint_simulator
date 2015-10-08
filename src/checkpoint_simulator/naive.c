@@ -65,7 +65,8 @@ void ckp_naive(int ckp_order, void *naive_info)
 	int ckp_fd;
 	char ckp_name[32];
 	db_naive_infomation *info;
-
+	long long timeStart;
+	long long timeEnd;
 	int db_size;
 
 	info = naive_info;
@@ -75,16 +76,21 @@ void ckp_naive(int ckp_order, void *naive_info)
 		return;
 	}
 	db_size = info->db_size;
-
+	timeStart = get_ntime();
 	pthread_rwlock_wrlock(& (info->write_mutex));
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
 	
 	memcpy(info->db_naive_AS_shandow,
 		info->db_naive_AS , DBServer.unitSize * DBServer.unitSize);
 	
 	pthread_rwlock_unlock(&(info->write_mutex));
+	timeEnd = get_ntime();
+	add_prepare_log(&DBServer,timeEnd - timeStart);
+	
+	timeStart = get_ntime();
 	write(ckp_fd, info->db_naive_AS_shandow, DBServer.unitSize * db_size);
 	fsync(ckp_fd);
 	close(ckp_fd);
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
+	timeEnd = get_ntime();
+	add_overhead_log(&DBServer,timeEnd - timeStart);
+	
 }

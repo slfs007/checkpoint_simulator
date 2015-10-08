@@ -103,7 +103,6 @@ DB_EXIT:
 	printf("database thread exit\n");
 	pthread_rwlock_destroy(&(DBServer.dbStateRWLock));
 	db_destroy(info);
-	log_time_write(&DBServer);
 	pthread_exit(NULL);
 }
 

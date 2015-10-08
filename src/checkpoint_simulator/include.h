@@ -33,6 +33,7 @@ typedef struct {
     int unitSize;
     struct timespec ckpTimeLog[2000];
     long long *ckpOverheadLog;
+    long long *ckpPrepareLog;
     int ckpMaxNum;
     int ckpID;
     int dbState;
@@ -51,7 +52,14 @@ typedef struct {
 
 #include"database.h"
 #include"update.h"
-void add_overhead_log(db_server *s,long long ns);
 
+void add_overhead_log(db_server *s,long long ns);
+void add_prepare_log(db_server *s,long long ns);
+int db_thread_start(pthread_t *db_thread_id, pthread_barrier_t *brr_exit, db_server *dbs);
+int update_thread_start(pthread_t *update_thread_id_array[],
+	pthread_barrier_t *brr_exit,
+	db_server *dbs);
+void write_overhead_log(db_server *s,const char *filePath);
+int randomfile_init(FILE *rf,int *rbuf,int rbufSize);
 #endif	/* INCLUDE_H */
 
