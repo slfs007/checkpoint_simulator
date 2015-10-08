@@ -64,7 +64,9 @@ void ckp_cou(int ckp_order, void *cou_info)
 	int i;
 	int db_size;
 	db_cou_infomation *info;
-
+	long long timeStart;
+	long long timeEnd;
+	
 	info = cou_info;
 	sprintf(ckp_name, "./ckp_backup/cou_%d", ckp_order);
 	if (-1 == (ckp_fd = open(ckp_name, O_WRONLY | O_CREAT, 666))) {
@@ -72,9 +74,8 @@ void ckp_cou(int ckp_order, void *cou_info)
 		return;
 	}
 	db_size = info->db_size;
+	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->db_mutex));
-
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
 	for (i = 0; i < db_size; i++) {
 		if (1 == info->db_cou_bitarray[i]) {
 			info->db_cou_bitarray[i] = 0;
@@ -84,11 +85,15 @@ void ckp_cou(int ckp_order, void *cou_info)
 		}
 	}
 	pthread_rwlock_unlock(&(info->db_mutex));
-
+	timeEnd = get_ntime();
+	add_prepare_log(&DBServer,timeEnd - timeStart);
+	
+	timeStart = get_ntime();
 	write(ckp_fd, info->db_cou_shandow, DBServer.unitSize * db_size);
 	fsync(ckp_fd);
 	close(ckp_fd);
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
+	timeEnd = get_ntime();
+	add_overhead_log(&DBServer,timeEnd - timeStart);
 }
 
 void db_cou_destroy(void *cou_info)

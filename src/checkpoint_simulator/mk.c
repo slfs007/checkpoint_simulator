@@ -70,7 +70,14 @@ typedef struct {
 void *mk_write_to_disk_thr(void *arg)
 {
 	mk_disk_info *info = arg;
+	long long timeStart;
+	long long timeEnd;
+	timeStart = get_ntime();
 	write(info->fd,info->addr,info->len);
+	fsync(info->fd);
+	close(info->fd);
+	timeEnd = get_ntime();
+	add_overhead_log(&DBServer,timeEnd - timeStart);
 	return NULL;
 }
 void db_mk_ckp(int ckp_order, void *mk_info)
@@ -85,6 +92,8 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 	int mkCur;
 	char *backup;
 	char *online;
+	long long timeStart;
+	long long timeEnd;
 	info = mk_info;
 	sprintf(ckp_name, "./ckp_backup/mk_%d", ckp_order);
 	if (-1 == (ckp_fd = open(ckp_name, O_WRONLY | O_CREAT, 666))) {
@@ -92,14 +101,11 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 		return;
 	}
 	db_size = info->db_size;
-
+	
+	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->db_rwlock));
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
-	//prepare for checkpoint
 	info->current = (1 == (info->current)) ? 2 : 1;
 	pthread_rwlock_unlock(&(info->db_rwlock));
-	//write to disk
-	
 	if (1 == info->current) {
 		mkCur = 1;
 		online = info->db_mk_as1;
@@ -122,9 +128,10 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 			info->db_mk_ba[i] = 0;
 		}
 	}
+	timeEnd = get_ntime();
+	add_prepare_log( &DBServer, timeEnd - timeStart);
 	pthread_join(mkDiskThrId,NULL);
-	fsync(ckp_fd);
-	close(ckp_fd);
+	
 	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
 }
 

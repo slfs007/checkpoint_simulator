@@ -84,6 +84,9 @@ void db_pingpong_ckp(int ckp_order, void *pp_info)
 	db_pingpong_infomation *info;
 	char *currentBackup;
 	unsigned char *currentBA;
+	long long timeStart;
+	long long timeEnd;
+	
 	info = pp_info;
 	sprintf(ckp_name, "./ckp_backup/pp_%d", ckp_order);
 	if (-1 == (ckp_fd = open(ckp_name, O_WRONLY | O_CREAT, 666))) {
@@ -91,13 +94,12 @@ void db_pingpong_ckp(int ckp_order, void *pp_info)
 		return;
 	}
 	db_size = info->db_size;
-
+	
+	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->write_mutex));
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
 	//prepare for checkpoint
 	info->current = !(info->current);
 	pthread_rwlock_unlock(&(info->write_mutex));
-
 	if (0 == info->current) {
 		currentBackup = info->db_pp_as_odd;
 		currentBA = info->db_pp_odd_ba;
@@ -105,25 +107,24 @@ void db_pingpong_ckp(int ckp_order, void *pp_info)
 		currentBackup = info->db_pp_as_even;
 		currentBA = info->db_pp_even_ba;
 	}
-	
 	for (i = 0; i < db_size; i++) {
 		if (1 == info->db_pp_as_even[i]) {
-
 			//info->db_pp_as_previous[i] = info->db_pp_as_even[i];
 			memcpy(info->db_pp_as_previous + i * DBServer.unitSize,
 				currentBackup + i * DBServer.unitSize, DBServer.unitSize);
 			memset(currentBackup + i * DBServer.unitSize, 0, DBServer.unitSize);
 			currentBA[i] = 0;
 		}
-
 	}
-	
+	timeEnd = get_ntime();
+	add_prepare_log(&DBServer,timeEnd - timeStart);
+	timeStart = get_ntime();
 	//write to disk
 	write(ckp_fd, info->db_pp_as_previous, DBServer.unitSize * db_size);
 	fsync(ckp_fd);
 	close(ckp_fd);
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
-
+	timeEnd = get_ntime();
+	add_overhead_log(&DBServer,timeEnd - timeStart);
 }
 
 void db_pingpong_destroy(void *pp_info)

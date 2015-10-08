@@ -34,6 +34,7 @@ typedef struct {
     struct timespec ckpTimeLog[2000];
     long long *ckpOverheadLog;
     long long *ckpPrepareLog;
+    long long *ckpTotalOverheadLog;
     int ckpMaxNum;
     int ckpID;
     int dbState;
@@ -55,6 +56,7 @@ typedef struct {
 
 void add_overhead_log(db_server *s,long long ns);
 void add_prepare_log(db_server *s,long long ns);
+void add_total_log(db_server *s,long long ns);
 int db_thread_start(pthread_t *db_thread_id, pthread_barrier_t *brr_exit, db_server *dbs);
 int update_thread_start(pthread_t *update_thread_id_array[],
 	pthread_barrier_t *brr_exit,

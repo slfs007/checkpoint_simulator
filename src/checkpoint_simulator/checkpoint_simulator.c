@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 	DBServer.ckpMaxNum = 10;
 	DBServer.ckpOverheadLog = malloc( sizeof(long long) * DBServer.ckpMaxNum);
 	DBServer.ckpPrepareLog = malloc(sizeof(long long) * DBServer.ckpMaxNum);
-	
+	DBServer.ckpTotalOverheadLog = malloc(sizeof(long long) * DBServer.ckpMaxNum);
 	if (NULL == (rf = fopen(argv[4], "r"))) {
 		perror("random file open error!\n");
 		return -1;
@@ -69,13 +69,12 @@ int main(int argc, char *argv[])
 int randomfile_init(FILE *rf,int *rbuf,int rbufSize)
 {
 	int i;
-	
+
 	for (i = 0; i < rbufSize; i ++){
 		fscanf(rf,"%d\n",rbuf + i);
 	}
-	
+
 	return i;
-	
 }
 void add_overhead_log(db_server *s,long long ns)
 {
@@ -85,19 +84,20 @@ void add_prepare_log(db_server *s,long long ns)
 {
 	s->ckpPrepareLog[s->ckpID] = ns;
 }
+void add_total_log(db_server *s,long long ns)
+{
+	s->ckpTotalOverheadLog[s->ckpID] = ns;
+}
 void write_overhead_log(db_server *s,const char *filePath)
 {
 	FILE *logFile;
 	int i;
 	logFile = fopen(filePath,"w");
-	fprintf(logFile,"Overhead:\n");
-	for (i = 0; i < s->ckpID;i ++ ){
-		
-		fprintf(logFile,"%lld\n",s->ckpOverheadLog[i]);
-	}
-	fprintf(logFile,"Prepare:\n");
+	
+	fprintf(logFile,"Prepare\t\t\tOverhead\t\ttotal\n");
 	for (i = 0; i < s->ckpID; i ++){
-		fprintf(logFile,"%lld\n",s->ckpPrepareLog[i]);
+		fprintf(logFile,"%lld\t\t%lld\t\t%lld\n",s->ckpPrepareLog[i],
+			s->ckpOverheadLog[i],s->ckpTotalOverheadLog[i]);
 	}
 	fflush( logFile);
 	fclose( logFile);

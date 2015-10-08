@@ -80,12 +80,13 @@ void *database_thread(void *arg)
 	long long timeStart;
 	long long timeEnd;
 	while (1) {
-		timeStart = get_utime();
-		printf("time:%d\n", (int) (timeStart / 1000000));
+		timeStart = get_ntime();
+		printf("time:%d\n", (int) (timeStart / 1000000000));
 		checkpoint(DBServer.ckpID % 2, info);
-		timeEnd = get_utime();
-	
-		usleep(5000000 - (timeEnd - timeStart));
+		timeEnd = get_ntime();
+
+		add_total_log( &DBServer, timeEnd - timeStart);
+		usleep(5000000 - (timeEnd - timeStart)/1000);
 
 		DBServer.ckpID++;
 		if (DBServer.ckpID >= DBServer.ckpMaxNum) {

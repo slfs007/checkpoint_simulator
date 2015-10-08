@@ -71,6 +71,8 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 	int i;
 	int db_size;
 	db_zigzag_infomation *info;
+	long long timeStart;
+	long long timeEnd;
 	
 	info = zigzag_info;
 	sprintf(ckp_name, "./ckp_backup/zz_%d", ckp_order);
@@ -79,20 +81,21 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 		return;
 	}
 	db_size = info->db_size;
-
+	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->write_mutex));
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2]));
 	//prepare for checkpoint
 	for (i = 0; i < db_size; i++) {
 		info->db_zigzag_mw[i] = !(info->db_zigzag_mr[i]);
 	}
 	pthread_rwlock_unlock(&(info->write_mutex));
+	timeEnd = get_ntime();
+	add_prepare_log(&DBServer,timeEnd - timeStart);
 	//write to disk
+	timeStart = get_ntime();
 	for (i = 0; i < db_size; i++) {
 		if (0 == info->db_zigzag_mw[i]) {
 			write(ckpfd,info->db_zigzag_as1 + i * DBServer.unitSize,
 				DBServer.unitSize);
-	
 		} else {
 			write(ckpfd,info->db_zigzag_as0 + i * DBServer.unitSize, 
 				DBServer.unitSize);
@@ -100,14 +103,15 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 	}
 	fsync(ckpfd);
 	close(ckpfd);
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
+	timeEnd = get_ntime();
+	add_overhead_log(&DBServer,timeEnd - timeStart);
 }
 
 void db_zigzag_destroy(void *zigzag_info)
 {
 	db_zigzag_infomation *info;
+	
 	info = zigzag_info;
-
 	free(info->db_zigzag_as0);
 	free(info->db_zigzag_as1);
 	free(info->db_zigzag_mr);
