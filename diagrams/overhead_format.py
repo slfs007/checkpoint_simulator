@@ -8,12 +8,12 @@ def get_ckp_overhead(algType,uf,dbSize,unitSize,dataDir):
 	logPath = dataDir + str(algType) + "_overhead_" + str(uf) +"k_"  + str(dbSize) + "_" + str(unitSize) + ".log"
 	file = open(logPath)
 
-
 	line = file.readline()
 	overheadList = []
-	while line:
-		overheadList.append(int(line))
-		line = file.readline()
+	for eachLine in file.readlines():
+		prepare,overhead,total = eachLine.split()
+		overheadList.append(int(total))
+
 	avg = sum(overheadList) / len(overheadList)
 	file.close()
 	return avg
