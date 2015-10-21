@@ -56,6 +56,13 @@ void *database_thread(void *arg)
 		info = &(DBServer.mkInfo);
 		snprintf(dbLogPath, sizeof(dbLogPath), "./log/mk_%d_ckp_log", dbSize);
 		break;
+	case LL_ALG:
+		db_init = db_ll_init;
+		checkpoint = db_ll_ckp;
+		db_destroy = db_ll_destroy;
+		info = &(DBServer.llInfo);
+		snprintf(dbLogPath, sizeof(dbLogPath), "./log/ll_%d_ckp_log", dbSize);
+		break;
 	default:
 		printf("alg_type error!");
 		goto DB_EXIT;

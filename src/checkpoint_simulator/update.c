@@ -46,6 +46,10 @@ void *update_thread(void *arg)
 		db_read = mk_read;
 		//    snprintf(log_name,sizeof(log_name),"./log/mk_update_log_%d",pthread_id);
 		break;
+	case LL_ALG:
+		db_write = ll_write;
+		db_read = ll_read;
+		break;
 	default:
 		perror("alg_type error");
 		break;

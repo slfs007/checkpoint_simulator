@@ -13,7 +13,7 @@
 #define ZIGZAG_ALG          2
 #define PINGPONG_ALG        3
 #define MK_ALG              4
-
+#define LL_ALG              5
 typedef struct {
     int dbSize;
     int algType;

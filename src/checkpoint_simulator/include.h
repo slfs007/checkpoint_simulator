@@ -26,7 +26,7 @@
 #include"zigzag.h"
 #include"pingpong.h"
 #include"mk.h"
-
+#include"LL.h"
 typedef struct {
     int algType;
     int dbSize;
@@ -48,6 +48,7 @@ typedef struct {
     db_zigzag_infomation zigzagInfo;
     db_pingpong_infomation pingpongInfo;
     db_mk_infomation mkInfo;
+    db_ll_infomation llInfo;
 
 } db_server;
 

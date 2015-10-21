@@ -108,7 +108,7 @@ void db_pingpong_ckp(int ckp_order, void *pp_info)
 		currentBA = info->db_pp_even_ba;
 	}
 	for (i = 0; i < db_size; i++) {
-		if (1 == info->db_pp_as_even[i]) {
+		if (1 == currentBA[i]) {
 			//info->db_pp_as_previous[i] = info->db_pp_as_even[i];
 			memcpy(info->db_pp_as_previous + i * DBServer.unitSize,
 				currentBackup + i * DBServer.unitSize, DBServer.unitSize);

@@ -131,8 +131,6 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 	timeEnd = get_ntime();
 	add_prepare_log( &DBServer, timeEnd - timeStart);
 	pthread_join(mkDiskThrId,NULL);
-	
-	clock_gettime(CLOCK_MONOTONIC, &(DBServer.ckpTimeLog[DBServer.ckpID * 2 + 1]));
 }
 
 void db_mk_destroy(void *mk_info)
