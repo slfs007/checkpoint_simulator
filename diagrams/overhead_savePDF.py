@@ -9,9 +9,9 @@ resDir = sys.argv[2]
 
 
 plt.figure(figsize=(8,4))
-algLabel=['naive','cou','zigzag','pingpong','MK']
+algLabel=['naive','cou','zigzag','pingpong','MK','LL']
 
-for i in range(0,5,1):
+for i in range(0,6,1):
 
     filePath = dataDir + str(i) + '_overhead.dat'
     file = open(filePath)

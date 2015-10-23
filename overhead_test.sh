@@ -13,7 +13,7 @@ rm ./log/latency/*.log
 for eachSize in 0
 do
 	python ./src/zipf_create/uniform_create.py ${RF_FILE} ${UF_ARRAY[eachSize]} ${DB_SIZE_ARRAY[eachSize]}
-	for eachAlg in 4 
+	for eachAlg in 0 
 	do
 	echo ${ALG_NAME[eachAlg]} ${UF_ARRAY[eachSize]} ${DB_SIZE_ARRAY[eachSize]}
 	echo "---------------------------------------------"

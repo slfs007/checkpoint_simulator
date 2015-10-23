@@ -9,6 +9,7 @@ def get_ckp_overhead(algType,uf,dbSize,unitSize,dataDir):
 	file = open(logPath)
 
 	line = file.readline()
+	line = file.readline()
 	overheadList = []
 	for eachLine in file.readlines():
 		prepare,overhead,total = eachLine.split()

@@ -88,7 +88,7 @@ int execute_update(int *random_buf, int buf_size, int times, FILE *log,int tick)
 		pthread_rwlock_unlock(&(DBServer.dbStateRWLock));
 
 		timeEndNs = get_ntime();
-		fprintf(log, "%lld,%lld\n",timeStartNs / 1000000,timeEndNs - timeStartNs);
+		fprintf(log, "%lld,%lld\n",timeStartNs,timeEndNs - timeStartNs);
 	}
 
 	return 0;
