@@ -14,13 +14,14 @@ algLabel=['naive','cou','zigzag','pingpong','MK','LL']
 
 plt.figure(figsize=(8,4))
 for i in range(0,6,1):
-    logPath = dataDir + algType + "_latency_" + uf +"k_"  + unitNum + "_" + unitSize + "_" + threadID +  ".log"
+    logPath = dataDir + str(i)+ "_latency_" + uf +"k_"  + unitNum + "_" + unitSize + "_" + threadID +  ".log"
     logFile = open( logPath)
     time=[]
     latency=[]
     for eachLine in logFile.readlines():
         timeNs,latencyNs = eachLine.split(",")
         time.append(long(timeNs))
+        time[-1] = time[-1] - time[0]
         latency.append(long(latencyNs))
     plt.plot(time,latency,label=algLabel[i],linewidth=1)
 
