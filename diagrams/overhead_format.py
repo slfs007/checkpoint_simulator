@@ -7,8 +7,9 @@ import sys
 def get_ckp_overhead(algType,uf,dbSize,unitSize,dataDir):
 	logPath = dataDir + str(algType) + "_overhead_" + str(uf) +"k_"  + str(dbSize) + "_" + str(unitSize) + ".log"
 	file = open(logPath)
-
+	#pharse first line( name)
 	line = file.readline()
+	#pharse second line( unuse infomation)
 	line = file.readline()
 	overheadList = []
 	for eachLine in file.readlines():
