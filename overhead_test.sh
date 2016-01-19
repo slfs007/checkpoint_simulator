@@ -10,7 +10,7 @@ RESULT_DIR="./data/"
 LOG_DIR="../log/overhead/"
 rm ./log/overhead/*.log
 rm ./log/latency/*.log
-for eachSize in 0
+for eachSize in 0 1 2 3 4
 do
 	python ./src/zipf_create/uniform_create.py ${RF_FILE} ${UF_ARRAY[eachSize]} ${DB_SIZE_ARRAY[eachSize]}
 	for eachAlg in 0 
@@ -24,9 +24,11 @@ do
 done
 
 cd diagrams
-for i in 0 1 2 3 4
+for i in 0
 do
-	echo "i"	
-#	python overhead_format.py ${ALG_ARRAY[i]} ${DB_SIZE_ARRAY[0]} $UF_BASE $UNIT_SIZE $RESULT_DIR $LOG_DIR
+	echo $i	
+	python overhead_format.py ${ALG_ARRAY[i]} ${DB_SIZE_ARRAY[0]} $UF_BASE $UNIT_SIZE $RESULT_DIR $LOG_DIR
 done
+python overhead_savePDF.py $RESULT_DIR $EXP_DIR
 cd ../
+
