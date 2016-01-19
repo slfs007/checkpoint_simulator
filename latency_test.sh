@@ -1,5 +1,5 @@
 DB_SIZE='25600'
-UF='320'
+UF='3200'
 THREAD_NUM='1'
 ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PINGPONG" "MK" "LL")
 LOG_NAME=("naive" "cou" "zigzag" "pingpong" "mk" "ll")
@@ -12,7 +12,7 @@ mkdir ckp_backup
 
 #1. generate the zipf random file
 python ./src/zipf_create/Zipf.py $RF_FILE $UF $DB_SIZE
-for i in 
+for i in 0 1 2 3 4 5 
 do 
 	echo ${ALG_NAME[i]}
 	echo "-------------------------------------"
