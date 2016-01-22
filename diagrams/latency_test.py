@@ -13,15 +13,36 @@ resultDir = sys.argv[6];
 algLabel=['naive','cou','zigzag','pingpong','MK','LL']
 
 plt.figure(figsize=(8,4))
-for i in range(0,2,1):
+for i in range(1,6,1):
     logPath = dataDir + str(i)+ "_latency_" + uf +"k_"  + unitNum + "_" + unitSize + "_" + threadID +  ".log"
     logFile = open( logPath)
     time=[]
     latency=[]
+    timeSum = 0
+    lastTime = 0
+    #0.1 sec
+    scale = 100000000
+    count = 0
     for eachLine in logFile.readlines():
-        timeNs,latencyNs = eachLine.split(",")
-        time.append(long(timeNs))
-        latency.append(long(latencyNs))
+        timeNsStr,latencyNsStr = eachLine.split(",")
+        timeNs = int(timeNsStr)
+        latencyNs = int(latencyNsStr)
+
+        if timeNs/scale != lastTime:
+            if count == 0:
+                lastTime = timeNs/scale
+                timeSum = 0
+
+            else:
+                time.append(lastTime)
+                latency.append(timeSum/count)
+                count = 0
+                lastTime = timeNs/scale
+                timeSum = 0
+        else:
+            timeSum += latencyNs
+            count += 1
+
     baseTime = time[0]
     for j in range(0,len(time),1):
         time[j] = time[j] - baseTime
