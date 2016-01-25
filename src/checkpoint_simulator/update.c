@@ -17,7 +17,7 @@ void *update_thread(void *arg)
 	int pthread_id = ((update_thread_info *) arg)->pthread_id;
 	int update_frequency = ((update_thread_info *) arg)->update_frequency;
 	char log_name[128];
-
+	
 	switch (alg_type) {
 	case NAIVE_ALG:
 		db_write = naive_write;
@@ -58,6 +58,7 @@ void *update_thread(void *arg)
 		DBServer.updateFrequency / 1000, DBServer.dbSize, DBServer.unitSize,
 		pthread_id);
 	pthread_barrier_wait(update_brr_init);
+	
 	random_update_db(random_buffer, random_buffer_size, log_name, update_frequency);
 
 	pthread_barrier_wait(brr_exit);

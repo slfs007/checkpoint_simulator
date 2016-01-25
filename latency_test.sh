@@ -1,5 +1,5 @@
-DB_SIZE='25600'
-UF='3200'
+DB_SIZE='256'
+UF='32'
 THREAD_NUM='1'
 ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PINGPONG" "MK" "LL")
 LOG_NAME=("naive" "cou" "zigzag" "pingpong" "mk" "ll")
@@ -17,7 +17,7 @@ do
 	echo ${ALG_NAME[i]}
 	echo "-------------------------------------"
 	ARG_CKP_LATENCY=${THREAD_NUM}" "${DB_SIZE}" "$i" "$RF_FILE" "${UF}" "$UNIT_SIZE
-	./bin/ckp_simulator $ARG_CKP_LATENCY
+	./bin/ckp_simulator $ARG_CKP_LATENCY 
 	echo "-------------------------------------"
 done
 

@@ -80,7 +80,7 @@ void ckp_naive(int ckp_order, void *naive_info)
 	pthread_rwlock_wrlock(& (info->write_mutex));
 	
 	memcpy(info->db_naive_AS_shandow,
-		info->db_naive_AS , DBServer.unitSize * DBServer.unitSize);
+		info->db_naive_AS , DBServer.unitSize * db_size);
 	
 	pthread_rwlock_unlock(&(info->write_mutex));
 	timeEnd = get_ntime();

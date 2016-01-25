@@ -13,6 +13,6 @@ ckp_simulator:
 	    ./src/checkpoint_simulator/pingpong.c		\
 	    ./src/checkpoint_simulator/mk.c			\
 	    ./src/checkpoint_simulator/LL.c			\
-	    -o ./bin/ckp_simulator -pthread -Wall -lrt
+	    -o ./bin/ckp_simulator -pthread -Wall -lrt -g
 clean:
 	rm  ./bin/*

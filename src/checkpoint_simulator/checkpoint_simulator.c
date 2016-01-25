@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
 		perror("db thread start fail!");
 		exit(1);
 	}
+	
 	if (0 != update_thread_start(&update_thread_array, &brr_exit,
 		&DBServer)) {
 		return -3;
