@@ -1,9 +1,11 @@
+#可更改
 DB_SIZE='256'
 UF='32'
 THREAD_NUM='1'
+UNIT_SIZE=4096
+#不可更改
 ALG_NAME=("NAIVE" "COU" "ZIGZAG" "PINGPONG" "MK" "LL")
 LOG_NAME=("naive" "cou" "zigzag" "pingpong" "mk" "ll")
-UNIT_SIZE=4096
 RF_FILE="./rfg.txt"
 DATA_DIR="./log/latency/"
 RESULT_DIR="./diagrams/experimental_result/"
@@ -13,6 +15,7 @@ mkdir log/overhead
 mkdir log/latency
 #1. generate the zipf random file
 python ./src/zipf_create/Zipf.py $RF_FILE $UF $DB_SIZE
+
 for i in 0 1 2 3 4 5 
 do 
 	echo ${ALG_NAME[i]}
