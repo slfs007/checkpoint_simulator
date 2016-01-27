@@ -9,7 +9,8 @@ DATA_DIR="./log/latency/"
 RESULT_DIR="./diagrams/experimental_result/"
 mkdir log
 mkdir ckp_backup
-
+mkdir log/overhead
+mkdir log/latency
 #1. generate the zipf random file
 python ./src/zipf_create/Zipf.py $RF_FILE $UF $DB_SIZE
 for i in 0 1 2 3 4 5 
