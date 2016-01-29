@@ -42,19 +42,22 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	fclose(rf);
-
+	DBServer.accessTicks = 0;
+	pthread_mutex_init(&(DBServer.accessMutex),NULL);
+	
 	pthread_barrier_init(&brr_exit, NULL, DBServer.updateThrNum + 1);
 	if (0 != db_thread_start(&db_thread_id, &brr_exit, &DBServer)) {
 		perror("db thread start fail!");
 		exit(1);
 	}
-	
+	DBServer.dbStartTime = get_mtime();
 	if (0 != update_thread_start(&update_thread_array, &brr_exit,
 		&DBServer)) {
 		return -3;
 	}
 	//wait for quit
 	pthread_join(db_thread_id, NULL);
+	DBServer.dbEndTime = get_mtime();	
 	for (i = 0; i < DBServer.updateThrNum; i++) {
 		pthread_join(update_thread_array[i], NULL);
 		printf("update thread %d exit!\n", i);
@@ -65,6 +68,16 @@ int main(int argc, char *argv[])
 		DBServer.algType,DBServer.updateFrequency/1000,
 		DBServer.dbSize,DBServer.unitSize);
 	write_overhead_log(&DBServer,logName);
+	//print the database throughput
+	FILE *throughputFile;
+	char logPath[64];
+	sprintf(logPath,"./log/overhead/tps_%d", DBServer.algType);
+
+	throughputFile = fopen(logPath,"w+");
+	
+	fprintf(throughputFile,"TPS:%lld",
+		1000 * DBServer.accessTicks / (DBServer.dbEndTime - DBServer.dbStartTime));
+	fclose(throughputFile);
 	exit(1);
 }
 int randomfile_init(FILE *rf,int *rbuf,int rbufSize)

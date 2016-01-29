@@ -78,7 +78,7 @@ void *database_thread(void *arg)
 	pthread_rwlock_wrlock(&DBServer.dbStateRWLock);
 	DBServer.dbState = 1;
 	pthread_rwlock_unlock(&DBServer.dbStateRWLock);
-
+	
 	printf("db thread init success!\n");
 	pthread_barrier_wait(initBrr);
 
@@ -111,6 +111,7 @@ DB_EXIT:
 	printf("database thread exit\n");
 	pthread_rwlock_destroy(&(DBServer.dbStateRWLock));
 	db_destroy(info);
+	
 	pthread_exit(NULL);
 }
 

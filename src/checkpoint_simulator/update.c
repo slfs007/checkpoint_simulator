@@ -100,13 +100,13 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 	long long i;
 	int tick;
 	FILE *logFile;
-	
+
 	long int timeNowUs;
 	long int timeStartUs;
 	long int timeTickUs;
 	long int timeBeginUs;
 	long int timeDiff;
-
+	long long accessTick = 0;
 	logFile = fopen(log_name, "w+");
 
 	tick = 0;
@@ -121,6 +121,7 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 				timeNowUs = get_utime();
 				goto EXIT;
 			}
+			accessTick += (uf / 1000);
 			//next 1ms tick
 			timeTickUs = timeStartUs + i * 1000;
 			timeNowUs = get_utime();
@@ -133,12 +134,16 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 	}
 	//clock_gettime(CLOCK_MONOTONIC, &(ckp_time_log[ckp_id*2])); 
 EXIT:
+		
 	fclose(logFile);
+	pthread_mutex_lock(&DBServer.accessMutex);
+	DBServer.accessTicks += accessTick;
+	pthread_mutex_unlock(&DBServer.accessMutex);
 	tick = tick * uf + i * (uf / 1000);
 	//time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
 
 	timeDiff = (timeNowUs - timeBeginUs) / 1000000;
-
+	//real uf is the throughput
 	printf("set uf:%d,real uf:%ld\n", uf, timeDiff == 0 ? 0 : tick / timeDiff);
 	return 0;
 }

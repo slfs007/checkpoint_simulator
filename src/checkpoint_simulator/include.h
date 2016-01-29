@@ -49,7 +49,10 @@ typedef struct {
     db_pingpong_infomation pingpongInfo;
     db_mk_infomation mkInfo;
     db_ll_infomation llInfo;
-
+    long long accessTicks;
+    pthread_mutex_t accessMutex;
+    long long dbStartTime;
+    long long dbEndTime;
 } db_server;
 
 #include"database.h"
