@@ -13,7 +13,7 @@ resultDir = sys.argv[6];
 algLabel=['naive','cou','zigzag','pingpong','MK','LL']
 
 plt.figure(figsize=(8,4))
-for i in range(1,6,1):
+for i in range(0,6,1):
     logPath = dataDir + str(i)+ "_latency_" + uf +"k_"  + unitNum + "_" + unitSize + "_" + threadID +  ".log"
     logFile = open( logPath)
     time=[]
