@@ -65,11 +65,11 @@ int ll_write(int index, void* value)
 
 	if (1 == (DBServer.llInfo).current) {
 		
-		memcpy((DBServer.llInfo).db_ll_as1 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.llInfo).db_ll_as1 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.llInfo).db_ll_as1_ba[index] = 1;
 	} else {
 		
-		memcpy((DBServer.llInfo).db_ll_as0 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.llInfo).db_ll_as0 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.llInfo).db_ll_as0_ba[index] = 1;
 	}
 	pthread_rwlock_unlock(&((DBServer.llInfo).db_rwlock));

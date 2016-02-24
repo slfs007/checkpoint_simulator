@@ -52,11 +52,11 @@ int mk_write(int index, void* value)
 
 	if (1 == (DBServer.mkInfo).current) {
 		
-		memcpy((DBServer.mkInfo).db_mk_as1 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.mkInfo).db_mk_as1 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.mkInfo).db_mk_ba[index] = 1;
 	} else {
 		
-		memcpy((DBServer.mkInfo).db_mk_as2 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.mkInfo).db_mk_as2 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.mkInfo).db_mk_ba[index] = 2;
 	}
 	pthread_rwlock_unlock(&((DBServer.mkInfo).db_rwlock));

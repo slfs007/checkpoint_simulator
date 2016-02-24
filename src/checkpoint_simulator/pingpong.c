@@ -60,7 +60,7 @@ int pingpong_write(int index, void* value)
 	if (index > (DBServer.pingpongInfo).db_size)
 		index = index % (DBServer.pingpongInfo).db_size;
 
-	memcpy((DBServer.pingpongInfo).db_pp_as + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+	memcpy((DBServer.pingpongInfo).db_pp_as + index * DBServer.unitSize, value, DBServer.unitSize);
 	pthread_rwlock_rdlock(&((DBServer.pingpongInfo).write_mutex));
 	if (0 == (DBServer.pingpongInfo).current) {
 

@@ -54,10 +54,10 @@ int zigzag_write(int index, void *value)
 	pthread_rwlock_rdlock(&((DBServer.zigzagInfo).write_mutex));
 	if (0 == (DBServer.zigzagInfo).db_zigzag_mw[index]) {
 		//(DBServer.zigzagInfo).db_zigzag_as0[index] = value;        
-		memcpy((DBServer.zigzagInfo).db_zigzag_as0 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.zigzagInfo).db_zigzag_as0 + index * DBServer.unitSize , value, DBServer.unitSize);
 	} else {
 		//(DBServer.zigzagInfo).db_zigzag_as1[index] = value;
-		memcpy((DBServer.zigzagInfo).db_zigzag_as1 + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+		memcpy((DBServer.zigzagInfo).db_zigzag_as1 + index * DBServer.unitSize , value, DBServer.unitSize);
 	}
 	(DBServer.zigzagInfo).db_zigzag_mr[index] = (DBServer.zigzagInfo).db_zigzag_mw[index];
 	pthread_rwlock_unlock(&((DBServer.zigzagInfo).write_mutex));

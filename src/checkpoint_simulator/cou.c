@@ -51,7 +51,7 @@ int cou_write(int index, void *value)
 	pthread_rwlock_rdlock(&((DBServer.couInfo).db_mutex));
 
 	(DBServer.couInfo).db_cou_bitarray[index] = 1;
-	memcpy((DBServer.couInfo).db_cou_primary + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+	memcpy((DBServer.couInfo).db_cou_primary + index * DBServer.unitSize, value, DBServer.unitSize);
 	
 	pthread_rwlock_unlock(&((DBServer.couInfo).db_mutex));
 	return 0;

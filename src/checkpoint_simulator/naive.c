@@ -55,7 +55,7 @@ int naive_write(int index, void *value)
 		index = index % DBServer.dbSize;
 	}
 	pthread_rwlock_rdlock(&((DBServer.naiveInfo).write_mutex));
-	memcpy((DBServer.naiveInfo).db_naive_AS + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
+	memcpy((DBServer.naiveInfo).db_naive_AS + index * DBServer.unitSize, value, DBServer.unitSize);
 	pthread_rwlock_unlock(&((DBServer.naiveInfo).write_mutex));
 	return 0;
 }
