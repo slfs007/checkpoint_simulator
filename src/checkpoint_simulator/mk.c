@@ -104,7 +104,11 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 	
 	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->db_rwlock));
-	info->current = (1 == (info->current)) ? 2 : 1;
+	if ( info->current == 1)
+		info->current = 2;
+	else
+		info->current = 1;
+	//info->current = (1 == (info->current)) ? 2 : 1;
 	pthread_rwlock_unlock(&(info->db_rwlock));
 	if (1 == info->current) {
 		mkCur = 1;
