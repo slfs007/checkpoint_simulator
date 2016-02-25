@@ -22,12 +22,26 @@ int db_cou_init(void *cou_info, int db_size)
 	}
 	memset(info->db_cou_shandow, 'S', DBServer.unitSize * db_size);
 
-	if (NULL == (info->db_cou_bitarray =
+    if (NULL == (info->db_cou_curBA =
 		(unsigned char *) malloc(db_size))) {
 		perror("db_cou_bitarray malloc error");
 		return -1;
 	}
-	memset(info->db_cou_bitarray, 0, db_size);
+
+    if (NULL == (info->db_cou_chgBA =
+        (unsigned char *) malloc(db_size))) {
+        perror("db_cou_bitarray malloc error");
+        return -1;
+    }
+
+    if (NULL == (info->db_cou_preBA =
+        (unsigned char *) malloc(db_size))) {
+        perror("db_cou_bitarray malloc error");
+        return -1;
+    }
+    memset(info->db_cou_curBA, 0, db_size);
+    memset(info->db_cou_preBA, 0, db_size);
+    memset(info->db_cou_chgBA, 0, db_size);
 
 	pthread_rwlock_init(&(info->db_mutex), NULL);
 
@@ -48,12 +62,12 @@ int cou_write(int index, void *value)
 	if (index > DBServer.dbSize)
 		index = index % DBServer.dbSize;
 
-	pthread_rwlock_rdlock(&((DBServer.couInfo).db_mutex));
+    if ( !DBServer.couInfo.db_cou_curBA[index]){
+        memcpy(DBServer.couInfo.db_cou_shandow,value,DBServer.unitSize);
+        DBServer.couInfo.db_cou_curBA[index] = 1;
 
-	(DBServer.couInfo).db_cou_bitarray[index] = 1;
-	memcpy((DBServer.couInfo).db_cou_primary + index * DBServer.unitSize, value, DBServer.unitSize);
-	
-	pthread_rwlock_unlock(&((DBServer.couInfo).db_mutex));
+    }
+    memcpy(DBServer.couInfo.db_cou_primary,value,DBServer.unitSize);
 	return 0;
 }
 
@@ -66,30 +80,39 @@ void ckp_cou(int ckp_order, void *cou_info)
 	db_cou_infomation *info;
 	long long timeStart;
 	long long timeEnd;
-	
+    static int times = 0;
 	info = cou_info;
 	sprintf(ckp_name, "./ckp_backup/cou_%d", ckp_order);
-	if (-1 == (ckp_fd = open(ckp_name, O_WRONLY | O_CREAT, 666))) {
+    if (-1 == (ckp_fd = open(ckp_name, O_WRONLY | O_CREAT, 666))) {
 		perror("checkpoint file open error,checkout if the ckp_backup directory is exist");
 		return;
 	}
 	db_size = info->db_size;
 	timeStart = get_ntime();
 	pthread_rwlock_wrlock(&(info->db_mutex));
-	for (i = 0; i < db_size; i++) {
-		if (1 == info->db_cou_bitarray[i]) {
-			info->db_cou_bitarray[i] = 0;
-			memcpy(info->db_cou_shandow + i * DBServer.unitSize,
-				info->db_cou_primary + i * DBServer.unitSize, DBServer.unitSize);
-
-		}
+    for (i = 0; i < db_size; i++) {
+        info->db_cou_chgBA[i] = info->db_cou_curBA[i] | info->db_cou_preBA[i];
+        info->db_cou_preBA[i] = info->db_cou_curBA[i];
+        info->db_cou_curBA[i] = 1;
 	}
 	pthread_rwlock_unlock(&(info->db_mutex));
 	timeEnd = get_ntime();
 	add_prepare_log(&DBServer,timeEnd - timeStart);
 	
 	timeStart = get_ntime();
-	write(ckp_fd, info->db_cou_shandow, DBServer.unitSize * db_size);
+    if ( !times){
+        write(ckp_fd, info->db_cou_shandow, DBServer.unitSize * db_size);
+    }else{
+        for (i = 0;i < db_size; i ++){
+            if (info->db_cou_chgBA[i]){
+                if (info->db_cou_curBA[i]){
+                    write(ckp_fd, info->db_cou_shandow + i * DBServer.unitSize,DBServer.unitSize);
+                }else{
+                    write(ckp_fd, info->db_cou_primary + i * DBServer.unitSize,DBServer.unitSize);
+                }
+            }
+        }
+    }
 	fsync(ckp_fd);
 	close(ckp_fd);
 	timeEnd = get_ntime();
@@ -103,7 +126,9 @@ void db_cou_destroy(void *cou_info)
 	info = cou_info;
 
 	pthread_rwlock_destroy(&(info->db_mutex));
-	free(info->db_cou_bitarray);
+    free(info->db_cou_chgBA);
+    free(info->db_cou_curBA);
+    free(info->db_cou_preBA);
 	free(info->db_cou_shandow);
 	free(info->db_cou_primary);
 }
