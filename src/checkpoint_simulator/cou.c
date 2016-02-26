@@ -79,11 +79,11 @@ int cou_write(int index, void *value)
     if ( !DBServer.couInfo.db_cou_curBA[index]){
         db_cou_lock(index);
         if ( DBServer.couInfo.db_cou_chgBA[index])
-            memcpy(DBServer.couInfo.db_cou_shandow,value,DBServer.unitSize);
+            memcpy(DBServer.couInfo.db_cou_shandow + index * DBServer.unitSize,value,DBServer.unitSize);
         DBServer.couInfo.db_cou_curBA[index] = 1;
         db_cou_unlock(index);
     }
-    memcpy(DBServer.couInfo.db_cou_primary,value,DBServer.unitSize);
+    memcpy(DBServer.couInfo.db_cou_primary + index * DBServer.unitSize,value,DBServer.unitSize);
     pthread_rwlock_unlock( &(DBServer.couInfo.db_mutex));
     return 0;
 }
