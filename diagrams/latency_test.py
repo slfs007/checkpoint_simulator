@@ -35,7 +35,7 @@ for i in range(0,6,1):
 
             else:
                 time.append(lastTime)
-                latency.append(timeSum/count)
+                latency.append(timeSum)
                 count = 0
                 lastTime = timeNs/scale
                 timeSum = 0
