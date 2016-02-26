@@ -15,6 +15,7 @@ typedef struct {
     unsigned char *db_cou_curBA;
     unsigned char *db_cou_preBA;
     unsigned char *db_cou_chgBA;
+    unsigned char *db_cou_access;
     pthread_rwlock_t db_mutex;
 
 } db_cou_infomation;

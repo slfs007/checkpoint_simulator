@@ -1,6 +1,19 @@
 #include"cou.h"
 extern db_server DBServer;
 
+void db_cou_lock(int index)
+{
+    unsigned char expected = 0;
+
+    while(!__atomic_compare_exchange_1(DBServer.couInfo.db_cou_access + index,&expected,
+                                1,0,__ATOMIC_SEQ_CST,__ATOMIC_SEQ_CST)){
+        expected = 0;
+    }
+}
+void db_cou_unlock(int index)
+{
+    __atomic_store_n(DBServer.couInfo.db_cou_access+index,0,__ATOMIC_SEQ_CST);
+}
 int db_cou_init(void *cou_info, int db_size)
 {
 	db_cou_infomation *info;
@@ -42,7 +55,8 @@ int db_cou_init(void *cou_info, int db_size)
     memset(info->db_cou_curBA, 0, db_size);
     memset(info->db_cou_preBA, 0, db_size);
     memset(info->db_cou_chgBA, 0, db_size);
-
+    info->db_cou_access = malloc(db_size);
+    memset(info->db_cou_access,0,db_size);
 	pthread_rwlock_init(&(info->db_mutex), NULL);
 
 	return 0;
@@ -61,14 +75,17 @@ int cou_write(int index, void *value)
 {
 	if (index > DBServer.dbSize)
 		index = index % DBServer.dbSize;
-
+    pthread_rwlock_rdlock(& (DBServer.couInfo.db_mutex));
     if ( !DBServer.couInfo.db_cou_curBA[index]){
-        memcpy(DBServer.couInfo.db_cou_shandow,value,DBServer.unitSize);
+        db_cou_lock(index);
+        if ( DBServer.couInfo.db_cou_chgBA[index])
+            memcpy(DBServer.couInfo.db_cou_shandow,value,DBServer.unitSize);
         DBServer.couInfo.db_cou_curBA[index] = 1;
-
+        db_cou_unlock(index);
     }
     memcpy(DBServer.couInfo.db_cou_primary,value,DBServer.unitSize);
-	return 0;
+    pthread_rwlock_unlock( &(DBServer.couInfo.db_mutex));
+    return 0;
 }
 
 void ckp_cou(int ckp_order, void *cou_info)
@@ -102,17 +119,22 @@ void ckp_cou(int ckp_order, void *cou_info)
 	timeStart = get_ntime();
     if ( !times){
         write(ckp_fd, info->db_cou_shandow, DBServer.unitSize * db_size);
+        times++;
     }else{
         for (i = 0;i < db_size; i ++){
             if (info->db_cou_chgBA[i]){
+                db_cou_lock(i);
                 if (info->db_cou_curBA[i]){
+                    db_cou_unlock(i);
                     write(ckp_fd, info->db_cou_shandow + i * DBServer.unitSize,DBServer.unitSize);
                 }else{
                     write(ckp_fd, info->db_cou_primary + i * DBServer.unitSize,DBServer.unitSize);
+                    db_cou_unlock(i);
                 }
             }
         }
     }
+
 	fsync(ckp_fd);
 	close(ckp_fd);
 	timeEnd = get_ntime();
