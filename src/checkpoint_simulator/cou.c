@@ -153,4 +153,5 @@ void db_cou_destroy(void *cou_info)
     free(info->db_cou_preBA);
 	free(info->db_cou_shandow);
 	free(info->db_cou_primary);
+    free(info->db_cou_access);
 }
