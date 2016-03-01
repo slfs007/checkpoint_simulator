@@ -15,9 +15,8 @@ typedef struct {
     char *db_mk_as2;
     unsigned char *db_mk_ba;
     unsigned char *db_mk_access;
-    pthread_rwlock_t db_rwlock;
-    int current;
-    int lock;
+    unsigned char db_mk_lock;
+    unsigned char current;
 } db_mk_infomation;
 
 #include"include.h"

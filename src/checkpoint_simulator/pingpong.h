@@ -17,7 +17,7 @@ typedef struct {
     char *db_pp_as_previous;
     unsigned char *db_pp_odd_ba;
     unsigned char *db_pp_even_ba;
-    pthread_rwlock_t write_mutex;
+    unsigned char db_pp_lock;
     int current;
 } db_pingpong_infomation;
 #include"include.h"

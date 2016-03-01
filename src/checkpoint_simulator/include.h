@@ -67,5 +67,10 @@ int update_thread_start(pthread_t *update_thread_id_array[],
 	db_server *dbs);
 void write_overhead_log(db_server *s,const char *filePath);
 int randomfile_init(FILE *rf,int *rbuf,int rbufSize);
+#define UNLOCK  0
+#define LOCK    -1
+void db_lock(unsigned char *lock);
+
+void db_unlock(unsigned char *lock);
 #endif	/* INCLUDE_H */
 

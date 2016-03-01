@@ -43,7 +43,7 @@ int db_pingpong_init(void *pp_info, int db_size)
 	}
 	memset(info->db_pp_as_even, 'S', DBServer.unitSize * db_size);
 
-	pthread_rwlock_init(&(info->write_mutex), NULL);
+    info->db_pp_lock = UNLOCK;
 	info->current = 0;
 	return 0;
 }
@@ -61,7 +61,7 @@ int pingpong_write(int index, void* value)
 		index = index % (DBServer.pingpongInfo).db_size;
 
 	memcpy((DBServer.pingpongInfo).db_pp_as + index * DBServer.unitSize, value, DBServer.unitSize);
-	pthread_rwlock_rdlock(&((DBServer.pingpongInfo).write_mutex));
+    db_lock( &(DBServer.pingpongInfo.db_pp_lock));
 	if (0 == (DBServer.pingpongInfo).current) {
 
 		memcpy((DBServer.pingpongInfo).db_pp_as_odd + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
@@ -71,7 +71,7 @@ int pingpong_write(int index, void* value)
 		memcpy((DBServer.pingpongInfo).db_pp_as_even + index * DBServer.unitSize + index % DBServer.unitSize, value, 4);
 		(DBServer.pingpongInfo).db_pp_even_ba[index] = 1;
 	}
-	pthread_rwlock_unlock(&((DBServer.pingpongInfo).write_mutex));
+    db_unlock( &(DBServer.pingpongInfo.db_pp_lock));
 	return 0;
 }
 
@@ -96,10 +96,10 @@ void db_pingpong_ckp(int ckp_order, void *pp_info)
 	db_size = info->db_size;
 	
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(&(info->write_mutex));
+    db_lock( &(DBServer.pingpongInfo.db_pp_lock));
 	//prepare for checkpoint
 	info->current = !(info->current);
-	pthread_rwlock_unlock(&(info->write_mutex));
+    db_unlock( &(DBServer.pingpongInfo.db_pp_lock));
 	if (0 == info->current) {
 		currentBackup = info->db_pp_as_odd;
 		currentBA = info->db_pp_odd_ba;
@@ -138,5 +138,5 @@ void db_pingpong_destroy(void *pp_info)
 	free(info->db_pp_as_previous);
 	free(info->db_pp_even_ba);
 	free(info->db_pp_odd_ba);
-	pthread_rwlock_destroy(&(info->write_mutex));
+
 }

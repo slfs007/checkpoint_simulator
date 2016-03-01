@@ -40,7 +40,7 @@ int db_mk_init(void *mk_info, int db_size)
 
     info->db_mk_access = malloc(db_size);
     memset(info->db_mk_access,0,db_size);
-	pthread_rwlock_init(&(info->db_rwlock), NULL);
+    info->db_mk_lock = UNLOCK;
 	info->current = 1;
 	return 0;
 
@@ -63,8 +63,7 @@ int mk_write(int index, void* value)
 	if (index > (DBServer.mkInfo).db_size)
 		index = index % (DBServer.mkInfo).db_size;
 
-	pthread_rwlock_rdlock(&((DBServer.mkInfo).db_rwlock));
-    db_mk_lock(index);
+    db_lock( &(DBServer.mkInfo.db_mk_lock));
 	if (1 == (DBServer.mkInfo).current) {
 		
 		memcpy((DBServer.mkInfo).db_mk_as1 + index * DBServer.unitSize , value, DBServer.unitSize);
@@ -74,8 +73,7 @@ int mk_write(int index, void* value)
 		memcpy((DBServer.mkInfo).db_mk_as2 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.mkInfo).db_mk_ba[index] = 2;
 	}
-    db_mk_lock(index);
-	pthread_rwlock_unlock(&((DBServer.mkInfo).db_rwlock));
+    db_unlock( &(DBServer.mkInfo.db_mk_lock));
 	return 0;
 }
 typedef struct {
@@ -119,13 +117,13 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 	db_size = info->db_size;
 	
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(&(info->db_rwlock));
+    db_lock( &(DBServer.mkInfo.db_mk_lock));
 	if ( info->current == 1)
 		info->current = 2;
 	else
 		info->current = 1;
 	//info->current = (1 == (info->current)) ? 2 : 1;
-	pthread_rwlock_unlock(&(info->db_rwlock));
+    db_unlock( &(DBServer.mkInfo.db_mk_lock));
     timeEnd = get_ntime();
     add_prepare_log( &DBServer, timeEnd - timeStart);
 
@@ -149,13 +147,13 @@ void db_mk_ckp(int ckp_order, void *mk_info)
 	pthread_create(&mkDiskThrId,NULL,mk_write_to_disk_thr,&mkDiskInfo);
     */
 	for (i = 0; i < db_size; i++) {
-        db_mk_lock(i);
+
 		if (mkCur != info->db_mk_ba[i] && 0 != mkCur) {
 			memcpy(online + i * DBServer.unitSize,
 				backup + i * DBServer.unitSize, DBServer.unitSize);
 			info->db_mk_ba[i] = 0;
 		}
-        db_mk_unlock(i);
+
 	}
     timeEnd = get_ntime();
     add_overhead_log(&DBServer,timeEnd - timeStart);
@@ -168,5 +166,5 @@ void db_mk_destroy(void *mk_info)
 	free(info->db_mk_as2);
 	free(info->db_mk_ba);
     free(info->db_mk_access);
-	pthread_rwlock_destroy(&(info->db_rwlock));
+
 }

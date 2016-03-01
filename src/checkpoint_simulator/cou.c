@@ -57,8 +57,7 @@ int db_cou_init(void *cou_info, int db_size)
     memset(info->db_cou_chgBA, 0, db_size);
     info->db_cou_access = malloc(db_size);
     memset(info->db_cou_access,0,db_size);
-	pthread_rwlock_init(&(info->db_mutex), NULL);
-
+    info->db_cou_lock = UNLOCK;
 	return 0;
 }
 
@@ -75,7 +74,7 @@ int cou_write(int index, void *value)
 {
 	if (index > DBServer.dbSize)
 		index = index % DBServer.dbSize;
-    pthread_rwlock_rdlock(& (DBServer.couInfo.db_mutex));
+    db_lock( &(DBServer.couInfo.db_cou_lock));
     if ( !DBServer.couInfo.db_cou_curBA[index]){
         db_cou_lock(index);
         if ( DBServer.couInfo.db_cou_chgBA[index])
@@ -84,7 +83,7 @@ int cou_write(int index, void *value)
         db_cou_unlock(index);
     }
     memcpy(DBServer.couInfo.db_cou_primary + index * DBServer.unitSize,value,DBServer.unitSize);
-    pthread_rwlock_unlock( &(DBServer.couInfo.db_mutex));
+    db_unlock( &(DBServer.couInfo.db_cou_lock));
     return 0;
 }
 
@@ -106,13 +105,13 @@ void ckp_cou(int ckp_order, void *cou_info)
 	}
 	db_size = info->db_size;
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(&(info->db_mutex));
+    db_lock( &(DBServer.couInfo.db_cou_lock));
     for (i = 0; i < db_size; i++) {
         info->db_cou_chgBA[i] = info->db_cou_curBA[i] | info->db_cou_preBA[i];
         info->db_cou_preBA[i] = info->db_cou_curBA[i];
         info->db_cou_curBA[i] = 1;
 	}
-	pthread_rwlock_unlock(&(info->db_mutex));
+    db_unlock( &(DBServer.couInfo.db_cou_lock));
 	timeEnd = get_ntime();
 	add_prepare_log(&DBServer,timeEnd - timeStart);
 	
@@ -147,7 +146,7 @@ void db_cou_destroy(void *cou_info)
 
 	info = cou_info;
 
-	pthread_rwlock_destroy(&(info->db_mutex));
+
     free(info->db_cou_chgBA);
     free(info->db_cou_curBA);
     free(info->db_cou_preBA);

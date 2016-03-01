@@ -22,10 +22,7 @@ int db_naive_init(void *naive_info, int db_size)
 		return -1;
 	}
 
-	if (0 != pthread_rwlock_init(&(info->write_mutex), NULL)) {
-		perror("write_mutex init error");
-		return -1;
-	}
+    info->db_naive_lock = UNLOCK;
 	return 0;
 }
 
@@ -34,7 +31,6 @@ void db_naive_destroy(void *naive_info)
 	db_naive_infomation *info;
 	info = naive_info;
 
-	pthread_rwlock_destroy(& (info->write_mutex));
 	free(info->db_naive_AS);
 	free(info->db_naive_AS_shandow);
 }
@@ -54,9 +50,9 @@ int naive_write(int index, void *value)
 	if (index >= DBServer.dbSize) {
 		index = index % DBServer.dbSize;
 	}
-	pthread_rwlock_rdlock(&((DBServer.naiveInfo).write_mutex));
+    db_lock( &(DBServer.naiveInfo.db_naive_lock));
 	memcpy((DBServer.naiveInfo).db_naive_AS + index * DBServer.unitSize, value, DBServer.unitSize);
-	pthread_rwlock_unlock(&((DBServer.naiveInfo).write_mutex));
+    db_unlock( &(DBServer.naiveInfo.db_naive_lock));
 	return 0;
 }
 
@@ -77,12 +73,12 @@ void ckp_naive(int ckp_order, void *naive_info)
 	}
 	db_size = info->db_size;
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(& (info->write_mutex));
+    db_lock( &(DBServer.naiveInfo.db_naive_lock));
 	
 	memcpy(info->db_naive_AS_shandow,
 		info->db_naive_AS , DBServer.unitSize * db_size);
 	
-	pthread_rwlock_unlock(&(info->write_mutex));
+    db_unlock( &(DBServer.naiveInfo.db_naive_lock));
 	timeEnd = get_ntime();
 	add_prepare_log(&DBServer,timeEnd - timeStart);
 	

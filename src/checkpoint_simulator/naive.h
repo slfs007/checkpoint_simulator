@@ -12,7 +12,8 @@ typedef struct {
     int db_size;
     char *db_naive_AS;
     char *db_naive_AS_shandow;
-    pthread_rwlock_t write_mutex;
+
+    unsigned char db_naive_lock;
 } db_naive_infomation;
 #include"include.h"
 

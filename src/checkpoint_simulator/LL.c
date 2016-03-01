@@ -38,7 +38,7 @@ int db_ll_init(void *ll_info, int db_size)
 		return -1;
 	}
 	memset(info->db_ll_mr_ba, 0, db_size);
-	pthread_rwlock_init(&(info->db_rwlock), NULL);
+    info->db_ll_lock = UNLOCK;
 	info->current = 0;
 	return 0;
 
@@ -61,7 +61,7 @@ int ll_write(int index, void* value)
 	if (index > (DBServer.llInfo).db_size)
 		index = index % (DBServer.llInfo).db_size;
 
-	pthread_rwlock_rdlock(&((DBServer.llInfo).db_rwlock));
+    db_lock( &(DBServer.llInfo.db_ll_lock));
 
 	if (1 == (DBServer.llInfo).current) {
 		
@@ -72,7 +72,7 @@ int ll_write(int index, void* value)
 		memcpy((DBServer.llInfo).db_ll_as0 + index * DBServer.unitSize , value, DBServer.unitSize);
 		(DBServer.llInfo).db_ll_as0_ba[index] = 1;
 	}
-	pthread_rwlock_unlock(&((DBServer.llInfo).db_rwlock));
+    db_unlock( &(DBServer.llInfo.db_ll_lock));
 	return 0;
 }
 
@@ -97,10 +97,10 @@ void db_ll_ckp(int ckp_order, void *ll_info)
 	db_size = info->db_size;
 	
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(&(info->db_rwlock));
+    db_lock( &(DBServer.llInfo.db_ll_lock));
 	//prepare for checkpoint
 	info->current = !(info->current);
-	pthread_rwlock_unlock(&(info->db_rwlock));
+    db_unlock( &(DBServer.llInfo.db_ll_lock));
 	if (0 == info->current) {
 		currentBackup = info->db_ll_as1;
 		currentBA = info->db_ll_as1_ba;
@@ -137,6 +137,5 @@ void db_ll_destroy(void *ll_info)
 	free(info->db_ll_as0_ba);
 	free(info->db_ll_mr_ba);
 	
-	pthread_rwlock_destroy(&(info->db_rwlock));
 }
 

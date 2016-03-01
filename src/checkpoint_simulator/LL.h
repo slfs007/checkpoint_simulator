@@ -17,7 +17,7 @@ typedef struct {
     unsigned char *db_ll_as0_ba;
     unsigned char *db_ll_as1_ba;
     unsigned char *db_ll_mr_ba;
-    pthread_rwlock_t db_rwlock;
+    unsigned char db_ll_lock;
     int current;
 
 } db_ll_infomation;

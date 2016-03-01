@@ -32,7 +32,7 @@ int db_zigzag_init(void *zigzag_info, int db_size)
 		return -1;
 	}
 	memset(info->db_zigzag_mw, 1, db_size);
-	pthread_rwlock_init(&(info->write_mutex), NULL);
+    info->db_zigzag_lock = UNLOCK;
 	return 0;
 }
 
@@ -51,7 +51,7 @@ int zigzag_write(int index, void *value)
 {
 	if (index > (DBServer.zigzagInfo).db_size)
 		index = index % (DBServer.zigzagInfo).db_size;
-	pthread_rwlock_rdlock(&((DBServer.zigzagInfo).write_mutex));
+    db_lock( &(DBServer.zigzagInfo.db_zigzag_lock));
 	if (0 == (DBServer.zigzagInfo).db_zigzag_mw[index]) {
 		//(DBServer.zigzagInfo).db_zigzag_as0[index] = value;        
 		memcpy((DBServer.zigzagInfo).db_zigzag_as0 + index * DBServer.unitSize , value, DBServer.unitSize);
@@ -60,7 +60,7 @@ int zigzag_write(int index, void *value)
 		memcpy((DBServer.zigzagInfo).db_zigzag_as1 + index * DBServer.unitSize , value, DBServer.unitSize);
 	}
 	(DBServer.zigzagInfo).db_zigzag_mr[index] = (DBServer.zigzagInfo).db_zigzag_mw[index];
-	pthread_rwlock_unlock(&((DBServer.zigzagInfo).write_mutex));
+    db_unlock( &(DBServer.zigzagInfo.db_zigzag_lock));
 	return 0;
 }
 
@@ -82,12 +82,12 @@ void db_zigzag_ckp(int ckp_order, void *zigzag_info)
 	}
 	db_size = info->db_size;
 	timeStart = get_ntime();
-	pthread_rwlock_wrlock(&(info->write_mutex));
+    db_lock( &(DBServer.zigzagInfo.db_zigzag_lock));
 	//prepare for checkpoint
 	for (i = 0; i < db_size; i++) {
 		info->db_zigzag_mw[i] = !(info->db_zigzag_mr[i]);
 	}
-	pthread_rwlock_unlock(&(info->write_mutex));
+    db_unlock( &(DBServer.zigzagInfo.db_zigzag_lock));
 	timeEnd = get_ntime();
 	add_prepare_log(&DBServer,timeEnd - timeStart);
 	//write to disk
@@ -116,5 +116,5 @@ void db_zigzag_destroy(void *zigzag_info)
 	free(info->db_zigzag_as1);
 	free(info->db_zigzag_mr);
 	free(info->db_zigzag_mw);
-	pthread_rwlock_destroy(&(info->write_mutex));
+
 }

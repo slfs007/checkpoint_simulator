@@ -161,3 +161,14 @@ long long get_mtime(void)
 {
 	return get_ntime() / 1000000;
 }
+void db_lock(unsigned char *lock)
+{
+    char expected = UNLOCK;
+    while( !__atomic_compare_exchange_1(lock,&expected,LOCK,0,__ATOMIC_RELAXED,__ATOMIC_RELAXED)){
+        expected = UNLOCK;
+    }
+}
+void db_unlock(unsigned char *lock)
+{
+    __atomic_store_1(lock,UNLOCK,__ATOMIC_RELAXED);
+}

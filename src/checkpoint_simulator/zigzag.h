@@ -14,7 +14,7 @@ typedef struct {
     char *db_zigzag_as1;
     unsigned char *db_zigzag_mr;
     unsigned char *db_zigzag_mw;
-    pthread_rwlock_t write_mutex;
+    unsigned char db_zigzag_lock;
 
 } db_zigzag_infomation;
 #include"include.h"
