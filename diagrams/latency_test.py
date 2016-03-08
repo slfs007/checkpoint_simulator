@@ -28,11 +28,11 @@ for i in range(0,6,1):
         timeNsStr,latencyNsStr = eachLine.split(",")
         timeNs = int(timeNsStr)
         latencyNs = int(latencyNsStr)
-        count++
+        count=count+1
         timeSum += timeNs
         if (count == int(uf))
         	time.append(tick)
-        	tick++
+        	tick=tick+1
         	latency.append(timeSum)
         	count = 0
         	timeSum = 0
