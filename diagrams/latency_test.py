@@ -23,26 +23,20 @@ for i in range(0,6,1):
     #0.1 sec
     scale = 100000000
     count = 0
+    tick = 0
     for eachLine in logFile.readlines():
         timeNsStr,latencyNsStr = eachLine.split(",")
         timeNs = int(timeNsStr)
         latencyNs = int(latencyNsStr)
-
-        if timeNs/scale != lastTime:
-            if count == 0:
-                lastTime = timeNs/scale
-                timeSum = 0
-
-            else:
-                time.append(lastTime)
-                latency.append(timeSum)
-                count = 0
-                lastTime = timeNs/scale
-                timeSum = 0
-        else:
-            timeSum += latencyNs
-            count += 1
-
+        count++
+        timeSum += timeNs
+        if (count == int(uf))
+        	time.append(tick)
+        	tick++
+        	latency.append(timeSum)
+        	count = 0
+        	timeSum = 0
+        	
     baseTime = time[0]
     for j in range(0,len(time),1):
         time[j] = time[j] - baseTime
