@@ -24,10 +24,10 @@ for i in range(0,6,1):
     tick = 0
     for eachLine in logFile.readlines():
         timeNsStr,latencyNsStr = eachLine.split(",")
-        
+
         latencyNs = int(latencyNsStr)
         count = count + 1
-        timeSum = timeNs + latencyNs
+        timeSum = timeSum + latencyNs
         if (count == int(uf)):
         	time.append(tick)
         	tick = tick + 1
