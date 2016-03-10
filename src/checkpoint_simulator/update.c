@@ -115,15 +115,15 @@ int random_update_db(int *random_buf, int buf_size, char *log_name, int uf)
 	while (1) {
 
 		timeStartUs = get_utime();
-		for (i = 0; i < 1000; i++) {
-			if (-1 == execute_update(random_buf, buf_size, uf / 1000, logFile,i)) {
+		for (i = 0; i < 100; i++) {
+			if (-1 == execute_update(random_buf, buf_size, uf / 100, logFile,i)) {
 				
 				timeNowUs = get_utime();
 				goto EXIT;
 			}
-			accessTick += (uf / 1000);
+			accessTick += (uf / 100);
 			//next 1ms tick
-			timeTickUs = timeStartUs + i * 1000;
+			timeTickUs = timeStartUs + i * 10000;
 			timeNowUs = get_utime();
 			if (timeNowUs < timeTickUs) {
 				usleep(timeTickUs - timeNowUs);
@@ -139,7 +139,7 @@ EXIT:
 	pthread_mutex_lock(&DBServer.accessMutex);
 	DBServer.accessTicks += accessTick;
 	pthread_mutex_unlock(&DBServer.accessMutex);
-	tick = tick * uf + i * (uf / 1000);
+	tick = tick * uf + i * (uf / 100);
 	//time_now_us = time_now.tv_sec * 1000000 + time_now.tv_nsec / 1000;
 
 	timeDiff = (timeNowUs - timeBeginUs) / 1000000;
